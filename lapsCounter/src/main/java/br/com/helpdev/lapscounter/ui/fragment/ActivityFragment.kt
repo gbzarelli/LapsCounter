@@ -44,7 +44,11 @@ class ActivityFragment : Fragment() {
         }
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
         return FragmentActivityBinding.inflate(layoutInflater, container, false).apply {
             subscribeUI(this)
         }.let { it.root }
@@ -58,15 +62,19 @@ class ActivityFragment : Fragment() {
         observerActivityEntity(viewModel, binding)
     }
 
-    private fun observerActivityEntity(viewModel: ActivityViewModel, binding: FragmentActivityBinding) {
+    private fun observerActivityEntity(
+        viewModel: ActivityViewModel,
+        binding: FragmentActivityBinding
+    ) {
         viewModel.activityEntity.observe(this, Observer { activityEntity ->
             configureLapsLog(activityEntity, binding)
             setToolbarTitle(activityEntity.name)
         })
     }
 
-    private fun loadViewModel() = ViewModelProviders.of(this, InjectorUtils.provideActivityViewModelFactory())
-        .get(ActivityViewModel::class.java)
+    private fun loadViewModel() =
+        ViewModelProviders.of(this, InjectorUtils.provideActivityViewModelFactory())
+            .get(ActivityViewModel::class.java)
 
     private fun configureLapsLog(activityEntity: ActivityEntity, binding: FragmentActivityBinding) {
         val toObLaps = activityEntity.chronometer!!.toObLaps()
@@ -83,9 +91,9 @@ class ActivityFragment : Fragment() {
         (activity as ActivitiesActivity).supportActionBar?.title = name
     }
 
-    override fun onCreateOptionsMenu(menu: Menu?, inflater: MenuInflater?) {
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         super.onCreateOptionsMenu(menu, inflater)
-        inflater?.inflate(R.menu.activity_saved_menu, menu)
+        inflater.inflate(R.menu.activity_saved_menu, menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

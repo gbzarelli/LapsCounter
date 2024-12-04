@@ -24,7 +24,7 @@ class SettingsFragment : PreferenceFragment(), Preference.OnPreferenceChangeList
         )
     }
 
-    private fun getLapDistancePreference() =
+    private fun getLapDistancePreference(): Preference =
         preferenceManager.findPreference(getString(R.string.pref_lap_distance_name))!!
 
     override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {

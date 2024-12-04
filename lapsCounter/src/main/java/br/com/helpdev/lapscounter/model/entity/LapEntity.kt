@@ -1,16 +1,18 @@
 package br.com.helpdev.lapscounter.model.entity
 
-import br.com.helpdev.chronometerlib.objects.ObLap
+import br.com.helpdev.chronometerlib.Chronometer
 import io.realm.RealmObject
 import java.io.Serializable
+import java.util.*
 
-fun LapEntity.toObLap(): ObLap {
-    val obLap = ObLap()
-    obLap.chronometerTime = chronometerTime
-    obLap.pausedTime = pausedTime
-    obLap.startTime = 0L
-    obLap.endTime = runningTime + pausedTime
-    return obLap
+fun LapEntity.toObLap(): Chronometer {
+    return Chronometer.Companion.Builder(
+        Date(),
+        chronometerTime - (runningTime + pausedTime),
+        0L,
+        runningTime + pausedTime,
+        pausedTime
+    ).build()
 }
 
 open class LapEntity(

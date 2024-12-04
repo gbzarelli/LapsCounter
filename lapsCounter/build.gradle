@@ -48,9 +48,12 @@ android {
 }
 
 dependencies {
-    implementation 'com.github.gbzarelli:chronometer-library:1.0.0'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
-    testImplementation "junit:junit:$junitVersion"
+    /**
+     * https://github.com/gbzarelli/chronometer-library
+     */
+    implementation 'com.github.gbzarelli:chronometer-library:2.0.3'
+
     implementation "com.google.android.gms:play-services-ads:$playServicesAdsVersion"
     implementation "androidx.multidex:multidex:$multidexVersion"
     implementation "androidx.appcompat:appcompat:$appCompatVersion"
@@ -61,4 +64,6 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-extensions:$lifecycleVersion"
     implementation "android.arch.navigation:navigation-fragment:$navigationVersion"
     implementation "android.arch.navigation:navigation-ui:$navigationVersion"
+
+    testImplementation "junit:junit:$junitVersion"
 }

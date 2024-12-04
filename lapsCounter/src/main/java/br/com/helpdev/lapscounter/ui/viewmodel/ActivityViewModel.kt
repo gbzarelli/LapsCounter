@@ -7,7 +7,7 @@ import br.com.helpdev.lapscounter.R
 import br.com.helpdev.lapscounter.model.entity.ActivityEntity
 import br.com.helpdev.lapscounter.model.repository.ActivityRepository
 import br.com.helpdev.lapscounter.ui.viewmodel.objects.HeaderDistances
-import br.com.helpdev.lapscounter.utils.ChronometerUtils
+import br.com.helpdev.lapscounter.utils.LapsCounterUtils
 import br.com.helpdev.lapscounter.utils.getStringLapDistance
 
 class ActivityViewModel(private val activityRepository: ActivityRepository) : ViewModel() {
@@ -38,7 +38,7 @@ class ActivityViewModel(private val activityRepository: ActivityRepository) : Vi
         context.getString(R.string.info_travelled, activityEntity.travelledDistance)
 
     private fun getStringPace(context: Context, activityEntity: ActivityEntity): String {
-        val pace = ChronometerUtils.getPace(activityEntity)
+        val pace = LapsCounterUtils.getPace(activityEntity)
         return context.getString(R.string.info_pace, pace.first, pace.second)
     }
 

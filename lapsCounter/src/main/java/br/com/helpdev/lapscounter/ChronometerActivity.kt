@@ -15,7 +15,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.RecyclerView
-import br.com.helpdev.chronometerlib.Chronometer
 import br.com.helpdev.lapscounter.headset.HeadsetButtonControl
 import br.com.helpdev.lapscounter.injector.InjectorUtils
 import br.com.helpdev.lapscounter.ui.ActivitiesActivity
@@ -33,7 +32,8 @@ import kotlinx.android.synthetic.main.lap_log_chronometers.*
 import kotlinx.android.synthetic.main.main_toolbar.*
 import kotlin.concurrent.thread
 
-abstract class ChronometerActivity : AppCompatActivity(), HeadsetButtonControl.HeadsetButtonControlListener {
+abstract class ChronometerActivity : AppCompatActivity(),
+    HeadsetButtonControl.HeadsetButtonControlListener {
     companion object {
         private const val REQUEST_SETTINGS = 15
     }
@@ -62,8 +62,9 @@ abstract class ChronometerActivity : AppCompatActivity(), HeadsetButtonControl.H
         updateParameters()
     }
 
-    private fun loadViewModel() = ViewModelProviders.of(this, InjectorUtils.provideActivityViewModelFactory())
-        .get(ChronometerViewModel::class.java)
+    private fun loadViewModel() =
+        ViewModelProviders.of(this, InjectorUtils.provideActivityViewModelFactory())
+            .get(ChronometerViewModel::class.java)
 
     private fun configureOnClicks() {
         bt_start.setOnClickListener { btStartPressed().run { alarm(R.raw.beep) } }
@@ -85,12 +86,12 @@ abstract class ChronometerActivity : AppCompatActivity(), HeadsetButtonControl.H
 
     private fun checkAndPerformChronometerStatus() {
         when {
-            Chronometer.STATUS_STARTED == viewModel.chronometer.status -> {
+            viewModel.chronometer.isStarted() -> {
                 startChronometersWidget()
                 checkHavePauseTime()
             }
-            Chronometer.STATUS_PAUSED == viewModel.chronometer.status -> startChronometersPaused()
-            Chronometer.STATUS_STOPPED == viewModel.chronometer.status -> refreshBasesPaused()
+            viewModel.chronometer.isPaused() -> startChronometersPaused()
+            viewModel.chronometer.isFinished() -> refreshBasesPaused()
         }
     }
 
@@ -103,14 +104,17 @@ abstract class ChronometerActivity : AppCompatActivity(), HeadsetButtonControl.H
 
     private fun restoreInstanceVisibilityViews(savedInstanceState: Bundle) {
         buttons_frame_2.visibility = savedInstanceState.getInt(buttons_frame_2.id.toString())
-        buttons_lay_restart_save.visibility = savedInstanceState.getInt(buttons_lay_restart_save.id.toString())
+        buttons_lay_restart_save.visibility =
+            savedInstanceState.getInt(buttons_lay_restart_save.id.toString())
         bt_start.visibility = savedInstanceState.getInt(bt_start.id.toString())
         bt_lap.visibility = savedInstanceState.getInt(bt_lap.id.toString())
         bt_pause.visibility = savedInstanceState.getInt(bt_pause.id.toString())
         bt_resume.visibility = savedInstanceState.getInt(bt_resume.id.toString())
         bt_stop.visibility = savedInstanceState.getInt(bt_stop.id.toString())
-        layout_chronometer_pause.visibility = savedInstanceState.getInt(layout_chronometer_pause.id.toString())
-        chronometer_lap_log.visibility = savedInstanceState.getInt(chronometer_lap_log.id.toString())
+        layout_chronometer_pause.visibility =
+            savedInstanceState.getInt(layout_chronometer_pause.id.toString())
+        chronometer_lap_log.visibility =
+            savedInstanceState.getInt(chronometer_lap_log.id.toString())
         text_view_empty.visibility = savedInstanceState.getInt(text_view_empty.id.toString())
     }
 
@@ -124,9 +128,15 @@ abstract class ChronometerActivity : AppCompatActivity(), HeadsetButtonControl.H
 
 
     private fun updateInfoTravelled() {
-        val distance = ChronometerUtils.getDistanceTravelled(viewModel.chronometer, lapDistance, countLastLap)
+        val distance =
+            LapsCounterUtils.getDistanceTravelled(
+                viewModel.chronometer.chronometer,
+                lapDistance,
+                countLastLap
+            )
         info_travelled.text = getString(R.string.info_travelled, distance)
-        val pace = ChronometerUtils.getPace(viewModel.chronometer, lapDistance, countLastLap)
+        val pace =
+            LapsCounterUtils.getPace(viewModel.chronometer.chronometer, lapDistance, countLastLap)
         info_pace.text = getString(R.string.info_pace, pace.first, pace.second)
     }
 
@@ -139,7 +149,7 @@ abstract class ChronometerActivity : AppCompatActivity(), HeadsetButtonControl.H
     }
 
     private fun createAdapter() {
-        recycler_view.adapter = LapsAdapter(this, viewModel.chronometer.getObChronometer().laps)
+        recycler_view.adapter = LapsAdapter(this, viewModel.chronometer.chronometer.getLaps())
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -245,7 +255,10 @@ abstract class ChronometerActivity : AppCompatActivity(), HeadsetButtonControl.H
 
     private fun refreshChronometerLog() {
         numberOfLap.text =
-            getString(R.string.num_lap, String.format("%02d", viewModel.chronometer.getObChronometer().laps.size))
+            getString(
+                R.string.num_lap,
+                String.format("%02d", viewModel.chronometer.chronometer.getLaps().size)
+            )
         chronometerLogCurrent.base = viewModel.chronometer.getBaseLastLap()
     }
 
@@ -308,7 +321,12 @@ abstract class ChronometerActivity : AppCompatActivity(), HeadsetButtonControl.H
     }
 
     private fun btSharePressed() {
-        ChronometerShareUtils.shareText(this, viewModel.chronometer, lapDistance, countLastLap)
+        ChronometerShareUtils.shareText(
+            this,
+            viewModel.chronometer.chronometer,
+            lapDistance,
+            countLastLap
+        )
     }
 
     private fun btRestartPressed() {
@@ -353,7 +371,10 @@ abstract class ChronometerActivity : AppCompatActivity(), HeadsetButtonControl.H
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.menu_settings -> startActivityForResult(Intent(this, SettingsActivity::class.java), REQUEST_SETTINGS)
+            R.id.menu_settings -> startActivityForResult(
+                Intent(this, SettingsActivity::class.java),
+                REQUEST_SETTINGS
+            )
             R.id.menu_activities -> startActivity(Intent(this, ActivitiesActivity::class.java))
         }
         return super.onOptionsItemSelected(item)
@@ -393,10 +414,10 @@ abstract class ChronometerActivity : AppCompatActivity(), HeadsetButtonControl.H
     }
 
     override fun btHeadsetHookPressed(keyEvent: KeyEvent?) {
-        when {
-            View.VISIBLE == bt_start.visibility -> btStartPressed()
-            View.VISIBLE == bt_resume.visibility -> btResumePressed()
-            View.VISIBLE == bt_lap.visibility -> btLapPressed()
+        when (View.VISIBLE) {
+            bt_start.visibility -> btStartPressed()
+            bt_resume.visibility -> btResumePressed()
+            bt_lap.visibility -> btLapPressed()
         }
     }
 
