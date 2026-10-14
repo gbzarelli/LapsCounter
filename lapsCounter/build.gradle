@@ -59,12 +59,20 @@ android {
             dimension = 'sport'
             applicationIdSuffix = '.swimming'
         }
+        running {
+            dimension = 'sport'
+            applicationIdSuffix = '.running'
+        }
+        cycling {
+            dimension = 'sport'
+            applicationIdSuffix = '.cycling'
+        }
     }
 
     buildFeatures {
         viewBinding = true
         dataBinding = true
-        buildConfig = false
+        buildConfig = true
     }
 
     compileOptions {
