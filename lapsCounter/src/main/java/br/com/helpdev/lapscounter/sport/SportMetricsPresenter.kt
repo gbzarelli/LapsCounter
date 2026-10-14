@@ -23,12 +23,6 @@ object SportMetricsPresenter {
         labels: SportMetricLabels,
         locale: Locale,
     ): SportMetricsPresentation {
-        val metric = SportMetricCalculator.calculate(
-            runningTimeMillis = runningTimeMillis,
-            distanceMeters = travelledDistanceMeters,
-            definition = profile.metricDefinition,
-        )
-
         return SportMetricsPresentation(
             splitDistance = SportDistanceFormatter.format(
                 splitDistanceMeters,
@@ -40,13 +34,31 @@ object SportMetricsPresenter {
                 profile.distanceDisplayUnit,
                 locale,
             ),
-            metric = SportMetricFormatter.format(
-                metric = metric,
-                paceUnitLabel = labels.paceReferenceUnit,
-                speedUnitLabel = labels.speedUnit,
-                unavailableLabel = labels.unavailable,
+            metric = formatMetric(
+                runningTimeMillis = runningTimeMillis,
+                distanceMeters = travelledDistanceMeters,
+                profile = profile,
+                labels = labels,
                 locale = locale,
             ),
         )
     }
+
+    fun formatMetric(
+        runningTimeMillis: Long,
+        distanceMeters: Float,
+        profile: SportProfile,
+        labels: SportMetricLabels,
+        locale: Locale,
+    ): String = SportMetricFormatter.format(
+        metric = SportMetricCalculator.calculate(
+            runningTimeMillis = runningTimeMillis,
+            distanceMeters = distanceMeters,
+            definition = profile.metricDefinition,
+        ),
+        paceUnitLabel = labels.paceReferenceUnit,
+        speedUnitLabel = labels.speedUnit,
+        unavailableLabel = labels.unavailable,
+        locale = locale,
+    )
 }

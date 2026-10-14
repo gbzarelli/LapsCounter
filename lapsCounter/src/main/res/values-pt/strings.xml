@@ -7,9 +7,15 @@
     <string name="no_records"><![CDATA[<Sem registros>]]></string>
     <string name="title_laps">Registro de voltas</string>
     <string name="sub_title_laps">Volta - Tempo - Acumulado - Pausado</string>
-    <string name="info_distance_lap">Volta\n%.2fm</string>
-    <string name="info_travelled">Percorrido\n%.2fm</string>
-    <string name="info_pace" formatted="true">Ritimo\n%02d:%02d/100m</string>
+    <string name="info_distance_lap">Volta\n%1$s</string>
+    <string name="info_travelled">Percorrido\n%1$s</string>
+    <string name="info_metric">%1$s\n%2$s</string>
+    <string name="metric_label_pace">Ritmo</string>
+    <string name="metric_label_average_speed">Velocidade média</string>
+    <string name="metric_pace_reference_100m">100 m</string>
+    <string name="metric_pace_reference_km">km</string>
+    <string name="metric_speed_unit">km/h</string>
+    <string name="metric_unavailable">--</string>
     <string name="title_chronometer">Cronometro</string>
     <string name="menu_settings">Configurações</string>
     <string name="bt_continue">CONTINUAR</string>
@@ -22,27 +28,27 @@
     <string name="title_activities">Atividades</string>
 
     <string name="text_to_share" formatted="true">
-        Atividade em: %s \n
-        \nTempo cronometrado: %s
-        \nTempo pausado: %s
-        \nTempo total: %s
-        \n\nDistância da volta: %s
-        \nDistância percorrida: %s
-        \nRitimo: %s
+        Atividade em: %1$s \n
+        \nTempo cronometrado: %2$s
+        \nTempo pausado: %3$s
+        \nTempo total: %4$s
+        \n\nDistância da volta: %5$s
+        \nDistância percorrida: %6$s
+        \n%7$s: %8$s
         \n\n
         ======Voltas======
-        %s
+        %9$s
         ==================
     </string>
     <string name="text_lap_share" formatted="true">
-        \nVolta: %d
-        \nTempo: %s
-        \nAcumulado: %s
-        \nPausado: %s
-        \nRitimo: %s
+        \nVolta: %1$d
+        \nTempo: %2$s
+        \nAcumulado: %3$s
+        \nPausado: %4$s
+        \n%5$s: %6$s
         \n
     </string>
-    <string name="last_lap_dont_count">(Última volta não contabiliza no ritimo e distância total)</string>
+    <string name="last_lap_dont_count">(Última volta não contabilizada na métrica e distância total)</string>
     <string name="confirm_exit">Confirma sair?</string>
     <string name="save_activity_message">Suas informações da atividade</string>
     <string name="hint_name_activity">Nome da atividade</string>

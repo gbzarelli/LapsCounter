@@ -74,10 +74,10 @@
                     android:drawableStart="@drawable/ic_pace_24"
                     android:drawablePadding="5dp"
                     android:gravity="center_vertical"
-                    android:text="@{headerDistances.pace}"
+                    android:text="@{headerDistances.metric}"
                     android:textColor="@color/white"
                     android:textStyle="bold"
-                    tools:text="@string/info_pace"/>
+                    tools:text="@string/metric_label_pace"/>
         </LinearLayout>
     </LinearLayout>
 

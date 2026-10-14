@@ -7,9 +7,15 @@
     <string name="no_records"><![CDATA[<No records>]]></string>
     <string name="title_laps">Lap LOG</string>
     <string name="sub_title_laps">Lap - Time - Accumulated - Paused</string>
-    <string name="info_distance_lap">Lap\n%.2fm</string>
-    <string name="info_travelled">Travelled\n%.2fm</string>
-    <string name="info_pace" formatted="true">Pace\n%02d:%02d/100m</string>
+    <string name="info_distance_lap">Lap\n%1$s</string>
+    <string name="info_travelled">Travelled\n%1$s</string>
+    <string name="info_metric">%1$s\n%2$s</string>
+    <string name="metric_label_pace">Pace</string>
+    <string name="metric_label_average_speed">Average speed</string>
+    <string name="metric_pace_reference_100m">100 m</string>
+    <string name="metric_pace_reference_km">km</string>
+    <string name="metric_speed_unit">km/h</string>
+    <string name="metric_unavailable">--</string>
     <string name="title_chronometer">Chronometer</string>
     <string name="menu_settings">Settings</string>
     <string name="bt_continue">RESUME</string>
@@ -23,27 +29,27 @@
     <string name="title_activities">Activities</string>
 
     <string name="text_to_share" formatted="true">
-        Activity at: %s \n
-        \nTimed time: %s
-        \nPaused time: %s
-        \nTotal time: %s
-        \n\nLap distance: %s
-        \nTravelled distance: %s
-        \nPace: %s
+        Activity at: %1$s \n
+        \nTimed time: %2$s
+        \nPaused time: %3$s
+        \nTotal time: %4$s
+        \n\nLap distance: %5$s
+        \nTravelled distance: %6$s
+        \n%7$s: %8$s
         \n\n
         ======Laps======
-        %s
+        %9$s
         ==================
     </string>
     <string name="text_lap_share" formatted="true">
-        \nLap: %d
-        \nTime: %s
-        \nAccumulated: %s
-        \nPaused: %s
-        \nPace: %s
+        \nLap: %1$d
+        \nTime: %2$s
+        \nAccumulated: %3$s
+        \nPaused: %4$s
+        \n%5$s: %6$s
         \n
     </string>
-    <string name="last_lap_dont_count">(Last lap does not count at full pace and distance)</string>
+    <string name="last_lap_dont_count">(Last lap is excluded from the final metric and distance)</string>
     <string name="bt_save">SAVE</string>
     <string name="confirm_exit">Confirm exit?</string>
     <string name="save_activity_message">Your activity info</string>
