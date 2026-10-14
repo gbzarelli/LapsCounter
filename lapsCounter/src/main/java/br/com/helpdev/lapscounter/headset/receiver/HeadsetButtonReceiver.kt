@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Handler
+import android.os.Looper
 import android.view.KeyEvent
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -14,7 +15,7 @@ class HeadsetButtonReceiver : BroadcastReceiver() {
         if (Intent.ACTION_MEDIA_BUTTON != intentAction) {
             return
         }
-        val event = intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT) as KeyEvent
+        val event = intent.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT) ?: return
         val action = event.action
 
         if (action == KeyEvent.ACTION_DOWN) {
@@ -24,7 +25,7 @@ class HeadsetButtonReceiver : BroadcastReceiver() {
                 KeyEvent.KEYCODE_MEDIA_PREVIOUS -> Intent(ACTION_KEYCODE_MEDIA_PREVIOUS)
                 KeyEvent.KEYCODE_HEADSETHOOK -> {
                     if (1 == clickHook.addAndGet(1)) {
-                        Handler().postDelayed({
+                        Handler(Looper.getMainLooper()).postDelayed({
                             sendBroadcast(context, intent, event,
                                     Intent(if (1 == clickHook.get()) ACTION_KEYCODE_HEADSET_HOOK
                                     else ACTION_KEYCODE_HEADSET_HOOK_DOUBLE_CLICK))
@@ -40,7 +41,7 @@ class HeadsetButtonReceiver : BroadcastReceiver() {
     }
 
     private fun sendBroadcast(context: Context, intent: Intent, event: KeyEvent, broadcast: Intent) {
-        intent.putExtra(PARAM_KEY_EVENT, event)
+        broadcast.putExtra(PARAM_KEY_EVENT, event)
         androidx.localbroadcastmanager.content.LocalBroadcastManager.getInstance(context).sendBroadcast(broadcast)
     }
 

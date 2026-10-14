@@ -1,21 +1,16 @@
 package br.com.helpdev.lapscounter.headset
 
 import android.content.*
-import android.media.AudioManager
 import android.view.KeyEvent
 import br.com.helpdev.lapscounter.headset.receiver.HeadsetButtonReceiver
 
 class HeadsetButtonControl {
 
-    private var audioManager: AudioManager? = null
-    private var receiverComponent: ComponentName? = null
     private var broadcastButtonReceiver: BroadcastButtonReceiver? = null
     private var headsetButtonControlListener: HeadsetButtonControlListener? = null
 
     fun registerHeadsetButton(context: Context, headsetButtonControlListener: HeadsetButtonControlListener) {
-        audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        receiverComponent = ComponentName(context, HeadsetButtonReceiver::class.java)
-        audioManager?.registerMediaButtonEventReceiver(receiverComponent)
+        unregisterHeadsetButton(context)
 
         this.headsetButtonControlListener = headsetButtonControlListener
         broadcastButtonReceiver = BroadcastButtonReceiver()
@@ -29,11 +24,17 @@ class HeadsetButtonControl {
             .registerReceiver(broadcastButtonReceiver!!, filter)
     }
 
+    internal fun dispatchMediaButtonEvent(context: Context, event: KeyEvent) {
+        val intent = Intent(Intent.ACTION_MEDIA_BUTTON).putExtra(Intent.EXTRA_KEY_EVENT, event)
+        HeadsetButtonReceiver().onReceive(context, intent)
+    }
+
     fun unregisterHeadsetButton(context: Context) {
-        if (null != receiverComponent) audioManager?.unregisterMediaButtonEventReceiver(receiverComponent)
         if (null != broadcastButtonReceiver) androidx.localbroadcastmanager.content.LocalBroadcastManager.getInstance(
             context
         ).unregisterReceiver(broadcastButtonReceiver!!)
+        broadcastButtonReceiver = null
+        headsetButtonControlListener = null
     }
 
     interface HeadsetButtonControlListener {

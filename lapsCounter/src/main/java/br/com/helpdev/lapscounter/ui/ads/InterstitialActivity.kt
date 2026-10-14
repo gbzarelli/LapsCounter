@@ -17,22 +17,22 @@ abstract class InterstitialActivity : AppCompatActivity() {
     }
 
     private fun initAd() {
-        val interstitialAd = InterstitialAd(this)
-        if (!interstitialAd.canDisplayAdByTime(this)) return
-
-        if (isFirstOpen(this, javaClass)) {
-            showMessageToOpenAd(interstitialAd)
-        } else {
-            interstitialAd.show(this)
+        AdsManager.requestConsent(this) { allowed ->
+            if (!allowed || isFinishing || isDestroyed || !AdsManager.canDisplayInterstitialByTime(this)) return@requestConsent
+            AdsManager.loadInterstitial(this) { loaded ->
+                if (!loaded || isFinishing || isDestroyed) return@loadInterstitial
+                if (isFirstOpen(this, javaClass)) showMessageToOpenAd()
+                else AdsManager.showInterstitial(this) { }
+            }
         }
     }
 
-    private fun showMessageToOpenAd(interstitialAd: InterstitialAd) {
+    private fun showMessageToOpenAd() {
         val builder = AlertDialog.Builder(this)
         builder.setTitle(R.string.app_name)
         builder.setMessage(R.string.first_show_ad)
         builder.setPositiveButton(android.R.string.ok) { _, _ ->
-            interstitialAd.show(this)
+            AdsManager.showInterstitial(this) { }
             setFirstOpen(this, javaClass)
         }
         builder.create().also { adDialogInformation = it }.show()

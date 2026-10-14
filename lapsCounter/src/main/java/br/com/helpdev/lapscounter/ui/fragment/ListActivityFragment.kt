@@ -6,7 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.Navigation
 import br.com.helpdev.lapscounter.databinding.FragmentListActivityBinding
 import br.com.helpdev.lapscounter.injector.InjectorUtils
@@ -16,29 +16,40 @@ import br.com.helpdev.lapscounter.ui.viewmodel.ListActivityViewModel
 
 class ListActivityFragment : Fragment() {
 
+    private var _binding: FragmentListActivityBinding? = null
+    private val binding get() = requireNotNull(_binding)
+    private lateinit var listActivityAdapter: ListActivityAdapter
+    private lateinit var viewModel: ListActivityViewModel
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return FragmentListActivityBinding.inflate(inflater, container, false).apply {
-            subscribeUI(this)
-        }.let { it.root }
+        _binding = FragmentListActivityBinding.inflate(inflater, container, false)
+        subscribeUI(binding)
+        return binding.root
     }
 
     private fun subscribeUI(binding: FragmentListActivityBinding) {
-        val listActivityAdapter = createAdapter()
+        listActivityAdapter = createAdapter()
         binding.recyclerView.adapter = listActivityAdapter
-        val viewModel = loadViewModel()
+        viewModel = loadViewModel()
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
         viewModel.observerActivities(listActivityAdapter, binding)
     }
 
     private fun createAdapter() = ListActivityAdapter { navigateToActivity(it) }
 
-    private fun loadViewModel() = ViewModelProviders.of(this, InjectorUtils.provideActivityViewModelFactory())
-        .get(ListActivityViewModel::class.java)
+    private fun loadViewModel() = ViewModelProvider(
+        this,
+        InjectorUtils.provideActivityViewModelFactory()
+    )[ListActivityViewModel::class.java]
 
     private fun ListActivityViewModel.observerActivities(
         adapter: ListActivityAdapter,
         binding: FragmentListActivityBinding
     ) {
-        activities.observe(this@ListActivityFragment, Observer { realmResults ->
+        activities.observe(viewLifecycleOwner, Observer { realmResults ->
             val toList = realmResults.toList()
             if (toList.isNullOrEmpty()) {
                 binding.hasItems = false
@@ -50,8 +61,14 @@ class ListActivityFragment : Fragment() {
     }
 
     private fun navigateToActivity(activityEntity: ActivityEntity) {
-        Navigation.findNavController(view!!).navigate(
+        Navigation.findNavController(requireView()).navigate(
             ListActivityFragmentDirections.actionListActivityFragmentToActivityFragment(activityEntity.id)
         )
+    }
+
+    override fun onDestroyView() {
+        binding.recyclerView.adapter = null
+        _binding = null
+        super.onDestroyView()
     }
 }

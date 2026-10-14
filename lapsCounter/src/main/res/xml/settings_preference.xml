@@ -28,4 +28,8 @@
             android:key="@string/pref_lap_distance_name"
             android:title="@string/pref_lap_distance_title"/>
 
+    <Preference
+            android:key="@string/pref_privacy_options_name"
+            android:title="@string/pref_privacy_options_title"/>
+
 </PreferenceScreen>
