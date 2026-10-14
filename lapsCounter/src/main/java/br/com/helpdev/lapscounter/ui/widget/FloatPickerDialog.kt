@@ -5,8 +5,12 @@ import android.content.DialogInterface
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.NumberPicker
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import br.com.helpdev.lapscounter.R
+import java.text.DecimalFormatSymbols
+import java.util.Locale
+import kotlin.math.roundToInt
 
 class FloatPickerDialog(context: Context, private val value: Float) : AlertDialog(context) {
 
@@ -20,7 +24,7 @@ class FloatPickerDialog(context: Context, private val value: Float) : AlertDialo
         onBindDialogView(view)
         setMessage(context.getString(R.string.hint_input_lap_distance))
         setButton(DialogInterface.BUTTON_POSITIVE, context.getString(android.R.string.ok)) { _, _ ->
-            val newValue = String.format("%d.%d", pk1?.value ?: 0, pk2?.value ?: 0).toFloat()
+            val newValue = (pk1?.value ?: 0) + (pk2?.value ?: 0) / 100f
             func(newValue)
         }
     }
@@ -33,19 +37,22 @@ class FloatPickerDialog(context: Context, private val value: Float) : AlertDialo
     fun onBindDialogView(view: View) {
         pk1 = view.findViewById(R.id.num_picker_1)
         pk2 = view.findViewById(R.id.num_picker_2)
+        val decimalSeparator = view.findViewById<TextView>(R.id.decimal_separator)
+        decimalSeparator.text = DecimalFormatSymbols.getInstance(
+            context.resources.configuration.locales[0] ?: Locale.getDefault(),
+        ).decimalSeparator.toString()
         if (null != pk1) {
-            pk1!!.minValue = 1
+            pk1!!.minValue = 0
             pk1!!.maxValue = 999
-            pk1!!.value = value.toInt()
         }
         if (null != pk2) {
             pk2!!.minValue = 0
             pk2!!.maxValue = 99
-            pk2!!.value = floatPointToInt(value)
         }
-    }
-
-    private fun floatPointToInt(value: Float): Int {
-        return value.toString().split('.')[1].toInt()
+        if (null != pk1 && null != pk2) {
+            val valueHundredths = (value * 100).roundToInt().coerceAtLeast(0)
+            pk1!!.value = valueHundredths / 100
+            pk2!!.value = valueHundredths % 100
+        }
     }
 }

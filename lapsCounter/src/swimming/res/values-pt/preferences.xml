@@ -1,0 +1,5 @@
+<resources>
+    <string name="pref_lap_distance_title">Distância da volta</string>
+    <string name="pref_lap_distance_summary">Cada volta contará %s</string>
+    <string name="hint_input_lap_distance">Digite a distância da volta em metros</string>
+</resources>

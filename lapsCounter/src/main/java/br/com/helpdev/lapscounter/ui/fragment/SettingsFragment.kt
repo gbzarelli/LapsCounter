@@ -3,9 +3,12 @@ package br.com.helpdev.lapscounter.ui.fragment
 import android.os.Bundle
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
-import androidx.preference.PreferenceManager
 import br.com.helpdev.lapscounter.R
+import br.com.helpdev.lapscounter.sport.SportDistanceFormatter
+import br.com.helpdev.lapscounter.sport.SportProfileProvider
 import br.com.helpdev.lapscounter.ui.ads.AdsManager
+import br.com.helpdev.lapscounter.utils.getLapDistance
+import java.util.Locale
 
 class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChangeListener {
 
@@ -18,13 +21,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
     private fun configureLapDistance() {
         val pref = getLapDistancePreference()
         pref.onPreferenceChangeListener = this
-        onPreferenceChange(
-            pref,
-            PreferenceManager.getDefaultSharedPreferences(requireContext()).getFloat(
-                pref.key,
-                resources.getInteger(R.integer.pref_lap_distance_default_value).toFloat()
-            )
-        )
+        onPreferenceChange(pref, getLapDistance(requireContext()))
     }
 
     private fun getLapDistancePreference(): Preference =
@@ -51,8 +48,16 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
 
     override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
         when (preference.key) {
-            getString(R.string.pref_lap_distance_name) -> preference.summary =
-                getString(R.string.pref_lap_distance_summary, newValue)
+            getString(R.string.pref_lap_distance_name) -> {
+                val lapDistanceMeters = (newValue as? Number)?.toFloat() ?: return false
+                val profile = SportProfileProvider.get()
+                val displayDistance = SportDistanceFormatter.format(
+                    lapDistanceMeters,
+                    profile.distanceDisplayUnit,
+                    resources.configuration.locales[0] ?: Locale.getDefault(),
+                )
+                preference.summary = getString(R.string.pref_lap_distance_summary, displayDistance)
+            }
         }
         return true
     }

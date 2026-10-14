@@ -5,10 +5,7 @@
     <string name="pref_headset_buttons_title">Control with the headset button</string>
     <string name="pref_headset_buttons_summary">Use the handset button to start and lap. Two clicks pause and one resume. (don\'t work on all devices)</string>
 
-    <string name="pref_lap_distance_title"> Lap distance</string>
-    <string name="pref_lap_distance_summary">Each lap will be counted %s meters</string>
     <string name="pref_lap_distance_name" translatable="false">pref_lap_distance_name</string>
-    <integer name="pref_lap_distance_default_value">50</integer>
 
     <string name="pref_count_last_lap_name" translatable="false">pref_count_last_lap_name</string>
     <string name="pref_audio_click_name" translatable="false">pref_audio_click_name</string>

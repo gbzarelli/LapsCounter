@@ -1,0 +1,5 @@
+<resources>
+    <string name="pref_lap_distance_title">Distância do segmento</string>
+    <string name="pref_lap_distance_summary">Cada segmento contará %s</string>
+    <string name="hint_input_lap_distance">Digite a distância do segmento em quilômetros</string>
+</resources>
