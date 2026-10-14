@@ -14,9 +14,11 @@ if (releaseSigningPropertiesFile.isFile()) {
     releaseSigningPropertiesFile.withInputStream { releaseSigningProperties.load(it) }
 }
 
-def hasReleaseSigning = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword'].every {
+def hasReleaseSigningValues = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword'].every {
     releaseSigningProperties.getProperty(it)?.trim()
 }
+def releaseStoreFile = releaseSigningProperties.getProperty('storeFile')?.trim()
+def hasReleaseSigning = hasReleaseSigningValues && rootProject.file(releaseStoreFile).isFile()
 
 android {
     namespace = 'br.com.helpdev.lapscounter'
@@ -87,11 +89,53 @@ kotlin {
     }
 }
 
-gradle.taskGraph.whenReady { graph ->
-    def requestsSwimmingRelease = graph.allTasks.any { it.name.toLowerCase().contains('swimmingrelease') }
-    if (requestsSwimmingRelease && !hasReleaseSigning) {
+def readAdMobValues = { String flavor ->
+    def values = [:]
+    def stringPattern = ~/(?s)<string\b[^>]*\bname="([^"]+)"[^>]*>(.*?)<\/string>/
+    ['main', flavor, 'release', "${flavor}Release"].each { sourceSet ->
+        def resourceFile = file("src/${sourceSet}/res/values/admob.xml")
+        if (resourceFile.isFile()) {
+            def matcher = resourceFile.getText('UTF-8') =~ stringPattern
+            while (matcher.find()) {
+                values[matcher.group(1)] = matcher.group(2).trim()
+            }
+        }
+    }
+    values
+}
+
+def validateAdMobRelease = { String flavor ->
+    def adMobValues = readAdMobValues(flavor)
+    def requiredPatterns = [
+        admob_app_id: /^ca-app-pub-\d{16}~\d{10}$/,
+        admob_banner_id: /^ca-app-pub-\d{16}\/\d{10}$/,
+        admob_interstitialad_id: /^ca-app-pub-\d{16}\/\d{10}$/,
+    ]
+    def googleTestPublisherId = 'ca-app-pub-3940256099942544'
+    def invalidKeys = requiredPatterns.findAll { key, pattern ->
+        def value = adMobValues[key]?.toString()?.trim()
+        !value || !(value ==~ pattern) || value.contains(googleTestPublisherId)
+    }.keySet()
+
+    if (!invalidKeys.isEmpty()) {
         throw new GradleException(
-            'Swimming release signing is not configured. Add storeFile, storePassword, keyAlias, and keyPassword to the ignored root keystore.properties file.'
+            "${flavor.capitalize()} release AdMob configuration is missing or invalid (${invalidKeys.join(', ')}). " +
+                "Set production IDs with the expected format in lapsCounter/src/${flavor}/res/values/admob.xml before releasing."
+        )
+    }
+}
+
+gradle.taskGraph.whenReady { graph ->
+    def releaseFlavors = graph.allTasks.collectMany { task ->
+        def matcher = task.name =~ /(?i)(swimming|running|cycling)release/
+        matcher.find() ? [matcher.group(1).toLowerCase()] : []
+    }.unique()
+
+    releaseFlavors.each { flavor -> validateAdMobRelease(flavor) }
+
+    if (!releaseFlavors.isEmpty() && !hasReleaseSigning) {
+        throw new GradleException(
+            'Release signing is not configured or the keystore file is missing. Set storeFile, storePassword, keyAlias, and keyPassword in the ignored root keystore.properties file.'
         )
     }
 }
