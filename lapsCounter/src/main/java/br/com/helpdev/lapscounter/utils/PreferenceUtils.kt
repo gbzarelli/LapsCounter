@@ -1,7 +1,7 @@
 package br.com.helpdev.lapscounter.utils
 
 import android.content.Context
-import android.preference.PreferenceManager
+import androidx.preference.PreferenceManager
 import br.com.helpdev.lapscounter.R
 
 fun getLapDistance(context: Context) = PreferenceManager.getDefaultSharedPreferences(context)

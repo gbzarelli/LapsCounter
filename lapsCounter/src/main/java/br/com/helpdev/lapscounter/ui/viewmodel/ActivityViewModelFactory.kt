@@ -8,7 +8,7 @@ class ActivityViewModelFactory(private val activityRepository: ActivityRepositor
     ViewModelProvider.NewInstanceFactory() {
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ChronometerViewModel::class.java))
             return ChronometerViewModel(activityRepository) as T
         if (modelClass.isAssignableFrom(ListActivityViewModel::class.java))

@@ -1,69 +1,109 @@
-apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
-apply plugin: 'kotlin-kapt'
-apply plugin: 'realm-android'
-apply plugin: 'com.google.gms.google-services'
-apply plugin: 'androidx.navigation.safeargs'
+import java.util.Properties
+
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.realm.android)
+    alias(libs.plugins.navigation.safeargs.kotlin)
+}
+
+def releaseSigningProperties = new Properties()
+def releaseSigningPropertiesFile = rootProject.file('keystore.properties')
+if (releaseSigningPropertiesFile.isFile()) {
+    releaseSigningPropertiesFile.withInputStream { releaseSigningProperties.load(it) }
+}
+
+def hasReleaseSigning = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword'].every {
+    releaseSigningProperties.getProperty(it)?.trim()
+}
 
 android {
+    namespace = 'br.com.helpdev.lapscounter'
+    compileSdk libs.versions.compileSdk.get().toInteger()
 
-    /** Enable auto-generate data onCreateBinding */
-    dataBinding {
-        enabled = true
+    defaultConfig {
+        applicationId = 'br.com.helpdev.lapscounter'
+        minSdk libs.versions.minSdk.get().toInteger()
+        targetSdk libs.versions.targetSdk.get().toInteger()
+        versionCode libs.versions.appVersionCode.get().toInteger()
+        versionName libs.versions.appVersionName.get()
+        testInstrumentationRunner = 'androidx.test.runner.AndroidJUnitRunner'
     }
 
     signingConfigs {
-        releaseKey {
-            keyAlias 'laps_counter'
-            keyPassword '******'
-            storeFile file('/home/gbzarelli/laps_counter.jks')
-            storePassword '******'
+        if (hasReleaseSigning) {
+            create('release') {
+                storeFile = rootProject.file(releaseSigningProperties.getProperty('storeFile'))
+                storePassword = releaseSigningProperties.getProperty('storePassword')
+                keyAlias = releaseSigningProperties.getProperty('keyAlias')
+                keyPassword = releaseSigningProperties.getProperty('keyPassword')
+            }
         }
     }
-    compileSdkVersion rootProject.compileSdkVersion
-    defaultConfig {
-        applicationId "br.com.helpdev.lapscounter"
-        minSdkVersion rootProject.minSdkVersion
-        targetSdkVersion rootProject.targetSdkVersion
-        versionCode 7
-        versionName "2.1"
-        multiDexEnabled = true
-    }
+
     buildTypes {
+        debug {
+            applicationIdSuffix = '.debug'
+        }
         release {
-//            minifyEnabled true // ( problems with data binding ?! )
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.releaseKey
+            minifyEnabled = false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) signingConfig = signingConfigs.getByName('release')
         }
     }
 
-    flavorDimensions "default"
+    flavorDimensions += 'sport'
     productFlavors {
-        swimming { applicationIdSuffix ".swimming" }
-//        running { applicationIdSuffix ".running" }
-//        cycling { applicationIdSuffix ".cycling" }
+        swimming {
+            dimension = 'sport'
+            applicationIdSuffix = '.swimming'
+        }
     }
 
+    buildFeatures {
+        viewBinding = true
+        dataBinding = true
+        buildConfig = false
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
+}
+
+gradle.taskGraph.whenReady { graph ->
+    def requestsSwimmingRelease = graph.allTasks.any { it.name.toLowerCase().contains('swimmingrelease') }
+    if (requestsSwimmingRelease && !hasReleaseSigning) {
+        throw new GradleException(
+            'Swimming release signing is not configured. Add storeFile, storePassword, keyAlias, and keyPassword to the ignored root keystore.properties file.'
+        )
+    }
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
-    /**
-     * https://github.com/gbzarelli/chronometer-library
-     */
-    implementation 'com.github.gbzarelli:chronometer-library:2.0.3'
+    implementation libs.chronometer.library
+    implementation libs.google.mobile.ads
+    implementation libs.google.ump
+    implementation libs.androidx.appcompat
+    implementation libs.androidx.constraintlayout
+    implementation libs.androidx.core.ktx
+    implementation libs.androidx.lifecycle.livedata.ktx
+    implementation libs.androidx.lifecycle.viewmodel.ktx
+    implementation libs.androidx.localbroadcastmanager
+    implementation libs.androidx.navigation.fragment.ktx
+    implementation libs.androidx.navigation.ui.ktx
+    implementation libs.androidx.preference.ktx
+    implementation libs.material
 
-    implementation "com.google.android.gms:play-services-ads:$playServicesAdsVersion"
-    implementation "androidx.multidex:multidex:$multidexVersion"
-    implementation "androidx.appcompat:appcompat:$appCompatVersion"
-    implementation "androidx.preference:preference:$preferenceVersion"
-    implementation "androidx.constraintlayout:constraintlayout:$constraintLayoutVersion"
-    implementation "com.google.android.material:material:$materialVersion"
-    implementation "com.google.firebase:firebase-core:$firebaseCoreVersion"
-    implementation "androidx.lifecycle:lifecycle-extensions:$lifecycleVersion"
-    implementation "android.arch.navigation:navigation-fragment:$navigationVersion"
-    implementation "android.arch.navigation:navigation-ui:$navigationVersion"
-
-    testImplementation "junit:junit:$junitVersion"
+    testImplementation libs.junit
+    androidTestImplementation libs.androidx.test.ext.junit
+    androidTestImplementation libs.androidx.test.runner
 }

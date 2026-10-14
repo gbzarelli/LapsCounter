@@ -5,15 +5,18 @@ import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.os.SystemClock
-import android.preference.PreferenceManager
 import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.ViewModelProviders
+import androidx.lifecycle.ViewModelProvider
+import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.RecyclerView
 import br.com.helpdev.lapscounter.headset.HeadsetButtonControl
 import br.com.helpdev.lapscounter.injector.InjectorUtils
@@ -22,22 +25,23 @@ import br.com.helpdev.lapscounter.ui.SettingsActivity
 import br.com.helpdev.lapscounter.ui.adapter.LapsAdapter
 import br.com.helpdev.lapscounter.ui.dialog.SaveActivityDialog
 import br.com.helpdev.lapscounter.ui.viewmodel.ChronometerViewModel
+import br.com.helpdev.lapscounter.ui.ads.AdsManager
+import br.com.helpdev.lapscounter.databinding.ActivityMainBinding
+import br.com.helpdev.chronometerlib.widget.ChronometerWidget
+import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.TextView
 import br.com.helpdev.lapscounter.utils.*
 import br.com.helpdev.lapscounter.utils.AlarmUtils.alarmAsync
-import kotlinx.android.synthetic.main.distances_layout.*
-import kotlinx.android.synthetic.main.include_buttons.*
-import kotlinx.android.synthetic.main.include_chronometer.*
-import kotlinx.android.synthetic.main.include_lap_log.*
-import kotlinx.android.synthetic.main.lap_log_chronometers.*
-import kotlinx.android.synthetic.main.main_toolbar.*
 import kotlin.concurrent.thread
 
 abstract class ChronometerActivity : AppCompatActivity(),
     HeadsetButtonControl.HeadsetButtonControlListener {
     companion object {
-        private const val REQUEST_SETTINGS = 15
     }
 
+    private lateinit var binding: ActivityMainBinding
     private lateinit var viewModel: ChronometerViewModel
 
     private var headsetButtonReceiver: HeadsetButtonControl? = null
@@ -49,9 +53,44 @@ abstract class ChronometerActivity : AppCompatActivity(),
     private var countLastLap: Boolean = true
     private var lapDistance: Float = 50.0f
 
+    private val settingsLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { updateParameters() }
+
+    private fun <T : View> findBoundView(id: Int) = binding.root.findViewById<T>(id)
+    private val toolbar by lazy(LazyThreadSafetyMode.NONE) { findBoundView<Toolbar>(R.id.toolbar) }
+    private val bt_start by lazy(LazyThreadSafetyMode.NONE) { findBoundView<Button>(R.id.bt_start) }
+    private val bt_resume by lazy(LazyThreadSafetyMode.NONE) { findBoundView<Button>(R.id.bt_resume) }
+    private val bt_lap by lazy(LazyThreadSafetyMode.NONE) { findBoundView<Button>(R.id.bt_lap) }
+    private val bt_pause by lazy(LazyThreadSafetyMode.NONE) { findBoundView<Button>(R.id.bt_pause) }
+    private val bt_share by lazy(LazyThreadSafetyMode.NONE) { findBoundView<Button>(R.id.bt_share) }
+    private val bt_save by lazy(LazyThreadSafetyMode.NONE) { findBoundView<Button>(R.id.bt_save) }
+    private val bt_restart by lazy(LazyThreadSafetyMode.NONE) { findBoundView<Button>(R.id.bt_restart) }
+    private val bt_stop by lazy(LazyThreadSafetyMode.NONE) { findBoundView<Button>(R.id.bt_stop) }
+    private val buttons_frame_2 by lazy(LazyThreadSafetyMode.NONE) { findBoundView<FrameLayout>(R.id.buttons_frame_2) }
+    private val buttons_lay_restart_save by lazy(LazyThreadSafetyMode.NONE) { findBoundView<LinearLayout>(R.id.buttons_lay_restart_save) }
+    private val layout_chronometer_pause by lazy(LazyThreadSafetyMode.NONE) { findBoundView<LinearLayout>(R.id.layout_chronometer_pause) }
+    private val chronometer_lap_log by lazy(LazyThreadSafetyMode.NONE) { findBoundView<LinearLayout>(R.id.chronometer_lap_log) }
+    private val text_view_empty by lazy(LazyThreadSafetyMode.NONE) { findBoundView<TextView>(R.id.text_view_empty) }
+    private val info_lap by lazy(LazyThreadSafetyMode.NONE) { findBoundView<TextView>(R.id.info_lap) }
+    private val info_travelled by lazy(LazyThreadSafetyMode.NONE) { findBoundView<TextView>(R.id.info_travelled) }
+    private val info_pace by lazy(LazyThreadSafetyMode.NONE) { findBoundView<TextView>(R.id.info_pace) }
+    private val recycler_view by lazy(LazyThreadSafetyMode.NONE) { findBoundView<RecyclerView>(R.id.recycler_view) }
+    private val numberOfLap by lazy(LazyThreadSafetyMode.NONE) { findBoundView<TextView>(R.id.numberOfLap) }
+    private val chronometerWidget by lazy(LazyThreadSafetyMode.NONE) { findBoundView<ChronometerWidget>(R.id.chronometerWidget) }
+    private val chronometerWidgetPause by lazy(LazyThreadSafetyMode.NONE) { findBoundView<ChronometerWidget>(R.id.chronometerWidgetPause) }
+    private val chronometerLogCurrent by lazy(LazyThreadSafetyMode.NONE) { findBoundView<ChronometerWidget>(R.id.chronometerLogCurrent) }
+    private val chronometerLogWidget by lazy(LazyThreadSafetyMode.NONE) { findBoundView<ChronometerWidget>(R.id.chronometerLogWidget) }
+    private val chronometerLogPause by lazy(LazyThreadSafetyMode.NONE) { findBoundView<ChronometerWidget>(R.id.chronometerLogPause) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        AdsManager.requestConsent(this)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() = showDialogExit()
+        })
         setSupportActionBar(toolbar)
         configureOnClicks()
         viewModel = loadViewModel()
@@ -63,7 +102,7 @@ abstract class ChronometerActivity : AppCompatActivity(),
     }
 
     private fun loadViewModel() =
-        ViewModelProviders.of(this, InjectorUtils.provideActivityViewModelFactory())
+        ViewModelProvider(this, InjectorUtils.provideActivityViewModelFactory())
             .get(ChronometerViewModel::class.java)
 
     private fun configureOnClicks() {
@@ -140,13 +179,6 @@ abstract class ChronometerActivity : AppCompatActivity(),
         info_pace.text = getString(R.string.info_pace, pace.first, pace.second)
     }
 
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (REQUEST_SETTINGS == requestCode) {
-            updateParameters()
-        }
-    }
 
     private fun createAdapter() {
         recycler_view.adapter = LapsAdapter(this, viewModel.chronometer.chronometer.getLaps())
@@ -371,10 +403,7 @@ abstract class ChronometerActivity : AppCompatActivity(),
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.menu_settings -> startActivityForResult(
-                Intent(this, SettingsActivity::class.java),
-                REQUEST_SETTINGS
-            )
+            R.id.menu_settings -> settingsLauncher.launch(Intent(this, SettingsActivity::class.java))
             R.id.menu_activities -> startActivity(Intent(this, ActivitiesActivity::class.java))
         }
         return super.onOptionsItemSelected(item)
@@ -383,6 +412,18 @@ abstract class ChronometerActivity : AppCompatActivity(),
     override fun onResume() {
         super.onResume()
         configureHeadsetButtons()
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (headsetButtonsEnable() && event.action == KeyEvent.ACTION_DOWN &&
+            (keyCode == KeyEvent.KEYCODE_HEADSETHOOK ||
+                keyCode == KeyEvent.KEYCODE_MEDIA_NEXT ||
+                keyCode == KeyEvent.KEYCODE_MEDIA_PREVIOUS)
+        ) {
+            headsetButtonReceiver?.dispatchMediaButtonEvent(this, event)
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
     private fun configureHeadsetButtons() {
@@ -432,10 +473,6 @@ abstract class ChronometerActivity : AppCompatActivity(),
     }
 
     override fun btHeadsetUndefinedPressed(keyEvent: KeyEvent?) {
-    }
-
-    override fun onBackPressed() {
-        showDialogExit()
     }
 
     private fun showDialogExit() {
