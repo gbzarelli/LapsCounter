@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">Cronômetro de ciclismo</string>
+    <string name="bt_lap">SEGMENTO +1</string>
+    <string name="no_records"><![CDATA[<Sem pedaladas>]]></string>
+    <string name="title_laps">Registro de segmentos</string>
+    <string name="sub_title_laps">Segmento - Tempo - Acumulado - Pausado</string>
+    <string name="info_distance_lap">Segmento\n%1$s</string>
+    <string name="info_travelled">Distância\n%1$s</string>
+    <string name="title_chronometer">Cronômetro de ciclismo</string>
+    <string name="title_activities">Pedaladas</string>
+    <string name="text_to_share" formatted="true">
+        Pedalada em: %1$s \n
+        \nTempo cronometrado: %2$s
+        \nTempo pausado: %3$s
+        \nTempo total: %4$s
+        \n\nDistância do segmento: %5$s
+        \nDistância percorrida: %6$s
+        \n%7$s: %8$s
+        \n\n
+        ======Segmentos======
+        %9$s
+        ==================
+    </string>
+    <string name="text_lap_share" formatted="true">
+        \nSegmento: %1$d
+        \nTempo: %2$s
+        \nAcumulado: %3$s
+        \nPausado: %4$s
+        \n%5$s: %6$s
+        \n
+    </string>
+    <string name="last_lap_dont_count">(O segmento final não entra na métrica nem na distância)</string>
+</resources>

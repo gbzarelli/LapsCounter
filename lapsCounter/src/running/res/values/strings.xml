@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">Running Stopwatch</string>
+    <string name="bt_lap">SPLIT +1</string>
+    <string name="no_records"><![CDATA[<No runs>]]></string>
+    <string name="title_laps">Split log</string>
+    <string name="sub_title_laps">Split - Time - Accumulated - Paused</string>
+    <string name="info_distance_lap">Split\n%1$s</string>
+    <string name="info_travelled">Distance\n%1$s</string>
+    <string name="title_chronometer">Run timer</string>
+    <string name="title_activities">Runs</string>
+    <string name="text_to_share" formatted="true">
+        Run at: %1$s \n
+        \nTimed time: %2$s
+        \nPaused time: %3$s
+        \nTotal time: %4$s
+        \n\nSplit distance: %5$s
+        \nDistance travelled: %6$s
+        \n%7$s: %8$s
+        \n\n
+        ======Splits======
+        %9$s
+        ==================
+    </string>
+    <string name="text_lap_share" formatted="true">
+        \nSplit: %1$d
+        \nTime: %2$s
+        \nAccumulated: %3$s
+        \nPaused: %4$s
+        \n%5$s: %6$s
+        \n
+    </string>
+    <string name="last_lap_dont_count">(Final split is excluded from the metric and distance)</string>
+</resources>
