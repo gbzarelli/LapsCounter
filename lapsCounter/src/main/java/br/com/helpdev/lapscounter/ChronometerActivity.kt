@@ -27,6 +27,7 @@ import br.com.helpdev.lapscounter.ui.dialog.SaveActivityDialog
 import br.com.helpdev.lapscounter.ui.viewmodel.ChronometerViewModel
 import br.com.helpdev.lapscounter.ui.ads.AdsManager
 import br.com.helpdev.lapscounter.databinding.ActivityMainBinding
+import br.com.helpdev.lapscounter.sport.SportProfileProvider
 import br.com.helpdev.chronometerlib.widget.ChronometerWidget
 import android.widget.Button
 import android.widget.FrameLayout
@@ -52,6 +53,7 @@ abstract class ChronometerActivity : AppCompatActivity(),
     private var audioEnable = true
     private var countLastLap: Boolean = true
     private var lapDistance: Float = 50.0f
+    private val sportProfile by lazy(LazyThreadSafetyMode.NONE) { SportProfileProvider.get() }
 
     private val settingsLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -74,7 +76,7 @@ abstract class ChronometerActivity : AppCompatActivity(),
     private val text_view_empty by lazy(LazyThreadSafetyMode.NONE) { findBoundView<TextView>(R.id.text_view_empty) }
     private val info_lap by lazy(LazyThreadSafetyMode.NONE) { findBoundView<TextView>(R.id.info_lap) }
     private val info_travelled by lazy(LazyThreadSafetyMode.NONE) { findBoundView<TextView>(R.id.info_travelled) }
-    private val info_pace by lazy(LazyThreadSafetyMode.NONE) { findBoundView<TextView>(R.id.info_pace) }
+    private val info_metric by lazy(LazyThreadSafetyMode.NONE) { findBoundView<TextView>(R.id.info_pace) }
     private val recycler_view by lazy(LazyThreadSafetyMode.NONE) { findBoundView<RecyclerView>(R.id.recycler_view) }
     private val numberOfLap by lazy(LazyThreadSafetyMode.NONE) { findBoundView<TextView>(R.id.numberOfLap) }
     private val chronometerWidget by lazy(LazyThreadSafetyMode.NONE) { findBoundView<ChronometerWidget>(R.id.chronometerWidget) }
@@ -161,22 +163,26 @@ abstract class ChronometerActivity : AppCompatActivity(),
         lapDistance = getLapDistance(this)
         countLastLap = countLastLap(this)
         audioEnable = isAudioEnable(this)
-        info_lap.text = getStringLapDistance(this)
         updateInfoTravelled()
     }
 
 
     private fun updateInfoTravelled() {
-        val distance =
-            LapsCounterUtils.getDistanceTravelled(
-                viewModel.chronometer.chronometer,
-                lapDistance,
-                countLastLap
-            )
-        info_travelled.text = getString(R.string.info_travelled, distance)
-        val pace =
-            LapsCounterUtils.getPace(viewModel.chronometer.chronometer, lapDistance, countLastLap)
-        info_pace.text = getString(R.string.info_pace, pace.first, pace.second)
+        val chronometer = viewModel.chronometer.chronometer
+        val distance = LapsCounterUtils.getDistanceTravelled(chronometer, lapDistance, countLastLap)
+        val presentation = presentSportMetrics(
+            runningTimeMillis = LapsCounterUtils.getRunningTime(chronometer, countLastLap),
+            splitDistanceMeters = lapDistance,
+            travelledDistanceMeters = distance,
+            profile = sportProfile,
+        )
+        info_lap.text = getString(R.string.info_distance_lap, presentation.splitDistance)
+        info_travelled.text = getString(R.string.info_travelled, presentation.travelledDistance)
+        info_metric.text = getString(
+            R.string.info_metric,
+            sportMetricTitle(sportProfile),
+            presentation.metric,
+        )
     }
 
 

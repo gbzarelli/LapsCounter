@@ -1,0 +1,5 @@
+<resources>
+    <string name="pref_lap_distance_title">Segment distance</string>
+    <string name="pref_lap_distance_summary">Each segment will be counted %s</string>
+    <string name="hint_input_lap_distance">Enter a segment distance in kilometres</string>
+</resources>

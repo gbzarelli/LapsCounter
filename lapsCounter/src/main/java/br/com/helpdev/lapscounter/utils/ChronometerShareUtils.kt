@@ -6,104 +6,125 @@ import br.com.helpdev.chronometerlib.Chronometer
 import br.com.helpdev.chronometerlib.ChronometerUtils
 import br.com.helpdev.lapscounter.R
 import br.com.helpdev.lapscounter.model.entity.ActivityEntity
+import br.com.helpdev.lapscounter.model.entity.getAccumulatedRunningTime
+import br.com.helpdev.lapscounter.sport.SportProfileProvider
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Locale
 
 object ChronometerShareUtils {
     fun shareText(
         context: Context,
         chronometer: Chronometer,
         lapDistance: Float,
-        countLastLap: Boolean
+        countLastLap: Boolean,
     ) {
+        val profile = SportProfileProvider.get()
         var pausedTime = 0L
-        var runningTime = 0L
+        var totalRunningTime = 0L
         val laps = StringBuilder()
 
-        for (x in 0 until chronometer.getLaps().size) {
-            val lap = chronometer.getLaps()[x]
+        for ((index, lap) in chronometer.getLaps().withIndex()) {
             pausedTime += lap.pausedTime
-            runningTime += lap.getRunTime()
-
-            val pace = LapsCounterUtils.getPace(lap.getRunTime(), lapDistance)
+            val lapRunningTime = lap.getRunTime().coerceAtLeast(0L)
+            totalRunningTime += lapRunningTime
+            val lapMetric = context.formatSportMetric(
+                runningTimeMillis = lap.getRunTime(),
+                distanceMeters = lapDistance,
+                profile = profile,
+            )
 
             laps.append(
                 context.getString(
                     R.string.text_lap_share,
-                    (x + 1),
+                    index + 1,
                     ChronometerUtils.getFormattedTime(lap.getRunTime()),
                     ChronometerUtils.getFormattedTime(lap.getAccumulatedTime()),
                     ChronometerUtils.getFormattedTime(lap.pausedTime),
-                    String.format("%02d:%02d", pace.first, pace.second)
-                )
+                    context.sportMetricTitle(profile),
+                    lapMetric,
+                ),
             )
         }
-        val pace = LapsCounterUtils.getPace(chronometer, lapDistance, countLastLap)
+
+        val countedDistance = LapsCounterUtils.getDistanceTravelled(chronometer, lapDistance, countLastLap)
+        val presentation = context.presentSportMetrics(
+            runningTimeMillis = LapsCounterUtils.getRunningTime(chronometer, countLastLap),
+            splitDistanceMeters = lapDistance,
+            travelledDistanceMeters = countedDistance,
+            profile = profile,
+        )
 
         if (!countLastLap) {
             laps.append(context.getString(R.string.last_lap_dont_count)).append("\n")
         }
 
-        val sdf = simpleDateFormat()
         val stringShare = context.getString(
             R.string.text_to_share,
-            sdf.format(chronometer.dateTime),
-            ChronometerUtils.getFormattedTime(runningTime),
+            simpleDateFormat().format(chronometer.dateTime),
+            ChronometerUtils.getFormattedTime(totalRunningTime),
             ChronometerUtils.getFormattedTime(pausedTime),
-            ChronometerUtils.getFormattedTime(runningTime + pausedTime),
-            lapDistance.toString() + "m",
-            LapsCounterUtils.getDistanceTravelled(
-                chronometer,
-                lapDistance,
-                countLastLap
-            ).toString() + "m",
-            String.format("%02d:%02d", pace.first, pace.second),
-            laps.toString()
+            ChronometerUtils.getFormattedTime(totalRunningTime + pausedTime),
+            presentation.splitDistance,
+            presentation.travelledDistance,
+            context.sportMetricTitle(profile),
+            presentation.metric,
+            laps.toString(),
         )
 
         shareText(context, context.getString(R.string.app_name), stringShare)
     }
 
     fun shareText(context: Context, activityEntity: ActivityEntity) {
+        val profile = SportProfileProvider.get()
         var pausedTime = 0L
-        var runningTime = 0L
+        var totalRunningTime = 0L
         val laps = StringBuilder()
+        val savedLaps = activityEntity.chronometer?.laps.orEmpty()
 
-        for (x in 0 until activityEntity.chronometer!!.laps.size) {
-            val lap = activityEntity.chronometer!!.laps[x]!!
+        for ((index, lap) in savedLaps.withIndex()) {
             pausedTime += lap.pausedTime
-            runningTime += lap.runningTime
-
-            val pace = LapsCounterUtils.getPace(lap.runningTime, activityEntity.lapDistance)
+            totalRunningTime += lap.runningTime
+            val lapMetric = context.formatSportMetric(
+                runningTimeMillis = lap.runningTime,
+                distanceMeters = activityEntity.lapDistance,
+                profile = profile,
+            )
 
             laps.append(
                 context.getString(
                     R.string.text_lap_share,
-                    (x + 1),
+                    index + 1,
                     ChronometerUtils.getFormattedTime(lap.runningTime),
-                    ChronometerUtils.getFormattedTime(lap.chronometerTime),
+                    ChronometerUtils.getFormattedTime(lap.getAccumulatedRunningTime()),
                     ChronometerUtils.getFormattedTime(lap.pausedTime),
-                    String.format("%02d:%02d", pace.first, pace.second)
-                )
+                    context.sportMetricTitle(profile),
+                    lapMetric,
+                ),
             )
         }
-        val pace = LapsCounterUtils.getPace(activityEntity)
+
+        val presentation = context.presentSportMetrics(
+            runningTimeMillis = LapsCounterUtils.getRunningTime(activityEntity),
+            splitDistanceMeters = activityEntity.lapDistance,
+            travelledDistanceMeters = activityEntity.travelledDistance,
+            profile = profile,
+        )
 
         if (!activityEntity.countLastLap) {
             laps.append(context.getString(R.string.last_lap_dont_count)).append("\n")
         }
 
-        val sdf = simpleDateFormat()
         val stringShare = context.getString(
             R.string.text_to_share,
-            sdf.format(activityEntity.dateStarted),
-            ChronometerUtils.getFormattedTime(runningTime),
+            simpleDateFormat().format(activityEntity.dateStarted),
+            ChronometerUtils.getFormattedTime(totalRunningTime),
             ChronometerUtils.getFormattedTime(pausedTime),
-            ChronometerUtils.getFormattedTime(runningTime + pausedTime),
-            activityEntity.lapDistance.toString() + "m",
-            activityEntity.travelledDistance.toString() + "m",
-            String.format("%02d:%02d", pace.first, pace.second),
-            laps.toString()
+            ChronometerUtils.getFormattedTime(totalRunningTime + pausedTime),
+            presentation.splitDistance,
+            presentation.travelledDistance,
+            context.sportMetricTitle(profile),
+            presentation.metric,
+            laps.toString(),
         )
 
         shareText(context, context.getString(R.string.app_name), stringShare)

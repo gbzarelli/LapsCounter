@@ -8,12 +8,14 @@ import java.util.*
 fun LapEntity.toObLap(): Chronometer {
     return Chronometer.Companion.Builder(
         Date(),
-        chronometerTime - (runningTime + pausedTime),
+        chronometerTime,
         0L,
         runningTime + pausedTime,
         pausedTime
     ).build()
 }
+
+fun LapEntity.getAccumulatedRunningTime(): Long = chronometerTime + runningTime
 
 open class LapEntity(
     var chronometerTime: Long = 0,

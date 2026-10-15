@@ -1,0 +1,5 @@
+<resources>
+    <string name="pref_lap_distance_title">Distância do trecho</string>
+    <string name="pref_lap_distance_summary">Cada trecho contará %s</string>
+    <string name="hint_input_lap_distance">Digite a distância do trecho em quilômetros</string>
+</resources>

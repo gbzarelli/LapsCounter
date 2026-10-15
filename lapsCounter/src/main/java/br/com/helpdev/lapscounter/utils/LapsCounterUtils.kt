@@ -2,60 +2,67 @@ package br.com.helpdev.lapscounter.utils
 
 import br.com.helpdev.chronometerlib.Chronometer
 import br.com.helpdev.lapscounter.model.entity.ActivityEntity
+import br.com.helpdev.lapscounter.sport.LapDistancePolicy
+import br.com.helpdev.lapscounter.sport.SportMetricCalculator
+import br.com.helpdev.lapscounter.sport.SportMetricResult
+import br.com.helpdev.lapscounter.sport.SportProfile
+import br.com.helpdev.lapscounter.sport.SportProfileProvider
 
 object LapsCounterUtils {
-    fun getPace(activityEntity: ActivityEntity) =
-        getPace(getRunningTimeToPace(activityEntity), activityEntity.travelledDistance)
-
-    private fun getRunningTimeToPace(activityEntity: ActivityEntity): Long {
-        val removedTimeToPace = if (activityEntity.countLastLap) {
-            0
-        } else
-            activityEntity.chronometer!!.laps.last()?.runningTime ?: 0
-        return (activityEntity.chronometer!!.runningTime - removedTimeToPace)
-    }
-
-    fun getPace(
+    fun getMetric(
         chronometer: Chronometer,
-        lapDistance: Float,
-        countLastLap: Boolean
-    ): Pair<Long, Long> {
-        val distanceTravelled = getDistanceTravelled(chronometer, lapDistance, countLastLap)
+        lapDistanceMeters: Float,
+        countLastLap: Boolean,
+        profile: SportProfile = SportProfileProvider.get(),
+    ): SportMetricResult = SportMetricCalculator.calculate(
+        runningTimeMillis = getRunningTime(chronometer, countLastLap),
+        distanceMeters = getDistanceTravelled(chronometer, lapDistanceMeters, countLastLap),
+        definition = profile.metricDefinition,
+    )
 
-        if (distanceTravelled <= 0) return Pair(0, 0)
+    fun getMetric(
+        activityEntity: ActivityEntity,
+        profile: SportProfile = SportProfileProvider.get(),
+    ): SportMetricResult = SportMetricCalculator.calculate(
+        runningTimeMillis = getRunningTime(activityEntity),
+        distanceMeters = activityEntity.travelledDistance,
+        definition = profile.metricDefinition,
+    )
 
-        var runningTime = 0L
-
-        val cut = countLastLap(chronometer, countLastLap)
-
-        for (x in 0 until (chronometer.getLaps().size - cut)) {
-            val obLap = chronometer.getLaps()[x]
-            runningTime += obLap.getRunTime() // ?? can be chronometerTime ?
-        }
-
-        return getPace(runningTime, distanceTravelled)
+    fun getRunningTime(chronometer: Chronometer, countLastLap: Boolean): Long {
+        val countedLapCount = countedLapCount(chronometer, countLastLap)
+        return chronometer.getLaps()
+            .take(countedLapCount)
+            .sumOf { it.getRunTime().coerceAtLeast(0L) }
     }
 
-    fun getPace(runningTime: Long, distanceTravelled: Float): Pair<Long, Long> {
-        val pace = ((runningTime * 100) / distanceTravelled).toLong()
-        return Pair(pace / 60_000L, (pace % 60_000L) / 1000L)
+    fun getRunningTime(activityEntity: ActivityEntity): Long {
+        val laps = activityEntity.chronometer?.laps ?: return 0L
+        val countedLapCount = LapDistancePolicy.countedLapCount(
+            totalLaps = laps.size,
+            isFinished = true,
+            countLastLap = activityEntity.countLastLap,
+        )
+        return laps.take(countedLapCount).sumOf { it.runningTime.coerceAtLeast(0L) }
     }
 
     fun getDistanceTravelled(
         chronometer: Chronometer,
-        lapDistance: Float,
-        countLastLap: Boolean
-    ): Float {
-        if (chronometer.getLaps().isEmpty()) return 0F
-        val cut = countLastLap(chronometer, countLastLap)
-        return (chronometer.getLaps().size - cut) * lapDistance
-    }
+        lapDistanceMeters: Float,
+        countLastLap: Boolean,
+    ): Float = LapDistancePolicy.countedDistanceMeters(
+        totalLaps = chronometer.getLaps().size,
+        lapDistanceMeters = lapDistanceMeters,
+        isFinished = chronometer.isFinished() && chronometer.getChronometerTime() > 0,
+        countLastLap = countLastLap,
+    )
 
-    private fun countLastLap(chronometer: Chronometer, countLastLap: Boolean) =
-        if (countLastLap && chronometer.getChronometerTime() > 0 && chronometer.isFinished())
-            0
-        else
-            1
+    private fun countedLapCount(chronometer: Chronometer, countLastLap: Boolean) =
+        LapDistancePolicy.countedLapCount(
+            totalLaps = chronometer.getLaps().size,
+            isFinished = chronometer.isFinished() && chronometer.getChronometerTime() > 0,
+            countLastLap = countLastLap,
+        )
 
     private fun Chronometer.isFinished() = endTime > 0
 }

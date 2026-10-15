@@ -3,21 +3,29 @@ package br.com.helpdev.lapscounter.ui.widget
 import android.content.Context
 import android.util.AttributeSet
 import androidx.preference.Preference
-import br.com.helpdev.lapscounter.R
+import br.com.helpdev.lapscounter.sport.LapDistancePreferenceAdapter
+import br.com.helpdev.lapscounter.sport.SportProfileProvider
 
 class FloatPickerPreference(context: Context, attrs: AttributeSet?) : Preference(context, attrs) {
     private val preferenceContext = context
 
     override fun onClick() {
         super.onClick()
-        FloatPickerDialog(
-            preferenceContext,
-            getPersistedFloat(preferenceContext.resources.getInteger(R.integer.pref_lap_distance_default_value).toFloat())
+        val profile = SportProfileProvider.get()
+        val storedMeters = getPersistedFloat(profile.defaultLapDistanceMeters)
+        val displayValue = LapDistancePreferenceAdapter.toDisplayValue(
+            storedMeters,
+            profile.distanceDisplayUnit,
         )
-            .show { value ->
-                persistFloat(value)
-                callChangeListener(value)
+        FloatPickerDialog(preferenceContext, displayValue).show { selectedDisplayValue ->
+            val selectedMeters = runCatching {
+                LapDistancePreferenceAdapter.toStoredMeters(selectedDisplayValue, profile.distanceDisplayUnit)
+            }.getOrNull() ?: return@show
+
+            if (callChangeListener(selectedMeters)) {
+                persistFloat(selectedMeters)
             }
+        }
     }
 
 }

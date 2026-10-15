@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">Cycling Stopwatch</string>
+    <string name="bt_lap">SEGMENT +1</string>
+    <string name="no_records"><![CDATA[<No rides>]]></string>
+    <string name="title_laps">Segment log</string>
+    <string name="sub_title_laps">Segment - Time - Accumulated - Paused</string>
+    <string name="info_distance_lap">Segment\n%1$s</string>
+    <string name="info_travelled">Distance\n%1$s</string>
+    <string name="title_chronometer">Ride timer</string>
+    <string name="title_activities">Rides</string>
+    <string name="text_to_share" formatted="true">
+        Ride at: %1$s \n
+        \nTimed time: %2$s
+        \nPaused time: %3$s
+        \nTotal time: %4$s
+        \n\nSegment distance: %5$s
+        \nDistance travelled: %6$s
+        \n%7$s: %8$s
+        \n\n
+        ======Segments======
+        %9$s
+        ==================
+    </string>
+    <string name="text_lap_share" formatted="true">
+        \nSegment: %1$d
+        \nTime: %2$s
+        \nAccumulated: %3$s
+        \nPaused: %4$s
+        \n%5$s: %6$s
+        \n
+    </string>
+    <string name="last_lap_dont_count">(Final segment is excluded from the metric and distance)</string>
+</resources>

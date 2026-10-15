@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">Cronômetro de corrida</string>
+    <string name="bt_lap">TRECHO +1</string>
+    <string name="no_records"><![CDATA[<Sem corridas>]]></string>
+    <string name="title_laps">Registro de trechos</string>
+    <string name="sub_title_laps">Trecho - Tempo - Acumulado - Pausado</string>
+    <string name="info_distance_lap">Trecho\n%1$s</string>
+    <string name="info_travelled">Distância\n%1$s</string>
+    <string name="title_chronometer">Cronômetro de corrida</string>
+    <string name="title_activities">Corridas</string>
+    <string name="text_to_share" formatted="true">
+        Corrida em: %1$s \n
+        \nTempo cronometrado: %2$s
+        \nTempo pausado: %3$s
+        \nTempo total: %4$s
+        \n\nDistância do trecho: %5$s
+        \nDistância percorrida: %6$s
+        \n%7$s: %8$s
+        \n\n
+        ======Trechos======
+        %9$s
+        ==================
+    </string>
+    <string name="text_lap_share" formatted="true">
+        \nTrecho: %1$d
+        \nTempo: %2$s
+        \nAcumulado: %3$s
+        \nPausado: %4$s
+        \n%5$s: %6$s
+        \n
+    </string>
+    <string name="last_lap_dont_count">(O trecho final não entra na métrica nem na distância)</string>
+</resources>

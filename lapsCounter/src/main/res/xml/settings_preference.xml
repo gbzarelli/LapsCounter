@@ -24,7 +24,6 @@
 
     <br.com.helpdev.lapscounter.ui.widget.FloatPickerPreference
             android:icon="@drawable/ic_distance_gray"
-            android:defaultValue="@integer/pref_lap_distance_default_value"
             android:key="@string/pref_lap_distance_name"
             android:title="@string/pref_lap_distance_title"/>
 
