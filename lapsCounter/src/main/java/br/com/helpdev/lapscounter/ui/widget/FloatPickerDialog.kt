@@ -24,7 +24,7 @@ class FloatPickerDialog(context: Context, private val value: Float) : AlertDialo
         onBindDialogView(view)
         setMessage(context.getString(R.string.hint_input_lap_distance))
         setButton(DialogInterface.BUTTON_POSITIVE, context.getString(android.R.string.ok)) { _, _ ->
-            val newValue = (pk1?.value ?: 0) + (pk2?.value ?: 0) / 100f
+            val newValue = FloatPickerValueAdapter.toFloat(pk1?.value ?: 0, pk2?.value ?: 0)
             func(newValue)
         }
     }
@@ -48,6 +48,7 @@ class FloatPickerDialog(context: Context, private val value: Float) : AlertDialo
         if (null != pk2) {
             pk2!!.minValue = 0
             pk2!!.maxValue = 99
+            pk2!!.displayedValues = FloatPickerValueAdapter.fractionalDisplayedValues()
         }
         if (null != pk1 && null != pk2) {
             val valueHundredths = (value * 100).roundToInt().coerceAtLeast(0)
