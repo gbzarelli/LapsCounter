@@ -6,6 +6,7 @@ import br.com.helpdev.chronometerlib.Chronometer
 import br.com.helpdev.chronometerlib.ChronometerUtils
 import br.com.helpdev.lapscounter.R
 import br.com.helpdev.lapscounter.model.entity.ActivityEntity
+import br.com.helpdev.lapscounter.model.entity.getAccumulatedRunningTime
 import br.com.helpdev.lapscounter.sport.SportProfileProvider
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -94,7 +95,7 @@ object ChronometerShareUtils {
                     R.string.text_lap_share,
                     index + 1,
                     ChronometerUtils.getFormattedTime(lap.runningTime),
-                    ChronometerUtils.getFormattedTime(lap.chronometerTime),
+                    ChronometerUtils.getFormattedTime(lap.getAccumulatedRunningTime()),
                     ChronometerUtils.getFormattedTime(lap.pausedTime),
                     context.sportMetricTitle(profile),
                     lapMetric,
