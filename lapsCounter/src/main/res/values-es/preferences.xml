@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_headset_buttons_title">Controlar con el botón de los auriculares</string>
+    <string name="pref_headset_buttons_summary">Usa el botón de los auriculares para iniciar y marcar una vuelta. Dos pulsaciones pausan el cronómetro y una lo reanuda (no funciona en todos los dispositivos).</string>
+    <string name="pref_count_last_lap_title">Contar la última vuelta</string>
+    <string name="pref_count_last_lap_summary">Añadir la distancia y el ritmo de la última vuelta al detener el cronómetro</string>
+    <string name="pref_privacy_options_title">Opciones de privacidad</string>
+    <string name="pref_audio_click_summary">Activar el sonido al iniciar, pausar, marcar una vuelta o detener el cronómetro</string>
+    <string name="pref_audio_click_title">Activar sonido</string>
+</resources>

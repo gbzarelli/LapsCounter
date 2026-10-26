@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">Cronómetro de carrera</string>
+    <string name="bt_lap">PARCIAL +1</string>
+    <string name="no_records"><![CDATA[<Sin carreras>]]></string>
+    <string name="title_laps">Registro de parciales</string>
+    <string name="sub_title_laps">Parcial - Tiempo - Acumulado - Pausado</string>
+    <string name="info_distance_lap">Parcial\n%1$s</string>
+    <string name="info_travelled">Distancia\n%1$s</string>
+    <string name="title_chronometer">Cronómetro de carrera</string>
+    <string name="title_activities">Carreras</string>
+    <string name="text_to_share" formatted="true">
+        Carrera del: %1$s \n
+        \nTiempo cronometrado: %2$s
+        \nTiempo en pausa: %3$s
+        \nTiempo total: %4$s
+        \n\nDistancia del parcial: %5$s
+        \nDistancia recorrida: %6$s
+        \n%7$s: %8$s
+        \n\n
+        ======Parciales======
+        %9$s
+        ==================
+    </string>
+    <string name="text_lap_share" formatted="true">
+        \nParcial: %1$d
+        \nTiempo: %2$s
+        \nAcumulado: %3$s
+        \nEn pausa: %4$s
+        \n%5$s: %6$s
+        \n
+    </string>
+    <string name="last_lap_dont_count">(El último parcial no se incluye en el ritmo ni en la distancia total)</string>
+</resources>

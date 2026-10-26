@@ -1,0 +1,65 @@
+<resources>
+    <string name="app_name">Cronómetro de natación</string>
+    <string name="bt_start">INICIAR</string>
+    <string name="bt_pause">PAUSAR</string>
+    <string name="bt_restart">REINICIAR</string>
+    <string name="bt_lap">VUELTA +1</string>
+    <string name="no_records"><![CDATA[<Sin registros>]]></string>
+    <string name="title_laps">Registro de vueltas</string>
+    <string name="sub_title_laps">Vuelta - Tiempo - Acumulado - Pausado</string>
+    <string name="info_distance_lap">Vuelta\n%1$s</string>
+    <string name="info_travelled">Recorrido\n%1$s</string>
+    <string name="info_metric">%1$s\n%2$s</string>
+    <string name="metric_label_pace">Ritmo</string>
+    <string name="metric_label_average_speed">Velocidad media</string>
+    <string name="metric_pace_reference_100m">100 m</string>
+    <string name="metric_pace_reference_km">km</string>
+    <string name="metric_speed_unit">km/h</string>
+    <string name="metric_unavailable">--</string>
+    <string name="title_chronometer">Cronómetro</string>
+    <string name="menu_settings">Ajustes</string>
+    <string name="bt_continue">REANUDAR</string>
+    <string name="menu_activities">Actividades</string>
+    <string name="bt_share">COMPARTIR</string>
+    <string name="paused_time">TIEMPO EN PAUSA</string>
+    <string name="bt_stop">DETENER</string>
+    <string name="title_settings">Ajustes</string>
+    <string name="title_activities">Actividades</string>
+    <string name="text_to_share" formatted="true">
+        Actividad del: %1$s \n
+        \nTiempo cronometrado: %2$s
+        \nTiempo en pausa: %3$s
+        \nTiempo total: %4$s
+        \n\nDistancia por vuelta: %5$s
+        \nDistancia recorrida: %6$s
+        \n%7$s: %8$s
+        \n\n
+        ======Vueltas======
+        %9$s
+        ==================
+    </string>
+    <string name="text_lap_share" formatted="true">
+        \nVuelta: %1$d
+        \nTiempo: %2$s
+        \nAcumulado: %3$s
+        \nEn pausa: %4$s
+        \n%5$s: %6$s
+        \n
+    </string>
+    <string name="last_lap_dont_count">(La última vuelta no se incluye en el ritmo ni en la distancia total)</string>
+    <string name="bt_save">GUARDAR</string>
+    <string name="confirm_exit">¿Quieres salir?</string>
+    <string name="save_activity_message">Información de tu actividad</string>
+    <string name="hint_name_activity">Nombre de la actividad</string>
+    <string name="hint_description_activity">Descripción de la actividad</string>
+    <string name="error_empty_name">El nombre no puede estar vacío</string>
+    <string name="activity_saved">Actividad guardada</string>
+    <string name="first_show_ad">Hola,\n\nSentimos la molestia. Para ayudar a mantener el desarrollo, mostraremos un anuncio breve que puedes cerrar al entrar en la pantalla de actividades. Así no interrumpiremos tu entrenamiento.\n\nGracias por tu comprensión.</string>
+    <string name="hint_input_lap_distance">Introduce la distancia de la vuelta</string>
+    <string name="title_list_activity">Lista de actividades</string>
+    <string name="menu_remove">Eliminar</string>
+    <string name="activity_removed">Actividad eliminada</string>
+    <string name="confirm_delete">¿Confirmas que quieres eliminar la actividad?</string>
+    <string name="info_last_lap">La última vuelta no cuenta para la distancia ni el ritmo</string>
+    <string name="menu_share">Compartir</string>
+</resources>

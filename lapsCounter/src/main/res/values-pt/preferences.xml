@@ -7,6 +7,6 @@
     <string name="pref_count_last_lap_title">Contar última volta</string>
     <string name="pref_count_last_lap_summary">Somar distância e pace da última volta ao PARAR</string>
 
-    <string name="pref_audio_click_summary">Habilitar audio ao clicar em play/pause/lap/stop</string>
-    <string name="pref_audio_click_title">Habilitar audio</string>
+    <string name="pref_audio_click_summary">Habilitar áudio ao tocar em iniciar, pausar, marcar volta ou parar</string>
+    <string name="pref_audio_click_title">Habilitar áudio</string>
 </resources>
