@@ -2,7 +2,7 @@
 
 ## Signing credentials
 
-The release build reads credentials from the ignored root `keystore.properties`; never commit this file or a keystore. Copy `keystore.properties.example` and set `storeFile`, `storePassword`, `keyAlias`, and `keyPassword`. `storeFile` may be absolute or relative to the repository root. Release tasks stop if any value is missing or the keystore file does not exist.
+Release keystores are maintained outside this checkout in the sibling `../android-keys/` repository. The release build reads credentials from the ignored root `keystore.properties`; never commit this file or a keystore. Copy `keystore.properties.example` and set `storeFile`, `storePassword`, `keyAlias`, and `keyPassword`. `storeFile` may be absolute or relative to the repository root. Release tasks stop if any value is missing or the keystore file does not exist.
 
 Before creating a bundle, verify the selected alias and compare its SHA-256 certificate fingerprint with the **upload certificate** registered for that app in Play Console. Play App Signing may use a different certificate to sign delivered APKs. If the upload certificate differs, stop; do not reset a key or upload an artifact until the owner approves the Play Console reset flow.
 
@@ -10,7 +10,7 @@ Before creating a bundle, verify the selected alias and compare its SHA-256 cert
 keytool -list -v -keystore "$KEYSTORE_PATH" -alias "$KEY_ALIAS"
 ```
 
-The same upload key can sign all three apps when each Play listing has that upload certificate registered. Check each app independently.
+Check each Play listing independently. A shared upload key is valid only when its SHA-256 fingerprint matches the upload certificate registered for every target app. Do not use the app-signing certificate fingerprint for this comparison. If a matching key is unavailable, stop; do not reset an upload key or upload a differently signed bundle without approval from the app owner.
 
 ## Variants and bundle commands
 
@@ -32,12 +32,12 @@ jarsigner -verify -verbose -certs lapsCounter/build/outputs/bundle/swimmingRelea
 
 Run `bundletool` and `jarsigner` with the corresponding output path for Running or Cycling as needed. Confirm package ID, version code, min SDK `24`, target SDK `36`, and upload-certificate fingerprint for the selected listing. Keep fingerprints and release checklists in secure local storage, not Git.
 
-Swimming is an existing Play listing and must retain its current package and continue above its published version-code history. Running and Cycling are new listings with independent version-code histories; register each package in Play Console, verify its upload certificate, and check its next version code against that listing before upload. Shared Gradle version values do not replace these per-app checks.
+Each flavor has its own Play listing and version-code history. Verify the package ID, registered upload certificate, and next version code for each listing before upload. Shared Gradle version values do not replace these per-app checks.
 
 ## Production AdMob IDs
 
-Release builds resolve IDs from the selected flavor's `src/<flavor>/res/values/admob.xml`. Swimming retains its current production IDs. Running and Cycling currently contain empty placeholders and cannot produce release bundles until each app has its own production app, banner, and interstitial IDs from AdMob. The release guard validates the ID shape and rejects missing values and Google's documented test publisher IDs.
+Release builds resolve production IDs from the selected flavor's `src/<flavor>/res/values/admob.xml`. Every flavor needs its own production app, banner, and interstitial IDs. The release guard validates the ID shape and rejects missing values and Google's documented test publisher IDs. Keep production IDs in their flavor resources; `src/debug/res/values/admob.xml` supplies test IDs only to debug builds.
 
 `src/debug/res/values/admob.xml` supplies Google's test IDs to all debug flavors. Do not move production IDs into `main` or `debug`, and do not add test IDs to a release flavor. Debug variants remain buildable without production ad setup.
 
-Before public release, register the matching package in AdMob, provide the three production IDs in its flavor resource file, then validate consent, ad loading, privacy policy, Play declarations, and store listing through that app's internal test track.
+Before release, validate consent, ad loading, privacy policy, Play declarations, and the store listing through the app's internal test track.

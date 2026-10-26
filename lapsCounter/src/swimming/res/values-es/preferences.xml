@@ -1,0 +1,5 @@
+<resources>
+    <string name="pref_lap_distance_title">Distancia de la vuelta</string>
+    <string name="pref_lap_distance_summary">Cada vuelta contará %s</string>
+    <string name="hint_input_lap_distance">Introduce la distancia de la vuelta en metros</string>
+</resources>

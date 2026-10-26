@@ -16,7 +16,7 @@
     <string name="metric_pace_reference_km">km</string>
     <string name="metric_speed_unit">km/h</string>
     <string name="metric_unavailable">--</string>
-    <string name="title_chronometer">Cronometro</string>
+    <string name="title_chronometer">Cronômetro</string>
     <string name="menu_settings">Configurações</string>
     <string name="bt_continue">CONTINUAR</string>
     <string name="menu_activities">Atividades</string>
@@ -53,7 +53,7 @@
     <string name="save_activity_message">Suas informações da atividade</string>
     <string name="hint_name_activity">Nome da atividade</string>
     <string name="hint_description_activity">Descrição da atividade</string>
-    <string name="error_empty_name">Empty name is not allow</string>
+    <string name="error_empty_name">O nome não pode ficar vazio</string>
     <string name="activity_saved">Atividade salva</string>
     <string name="first_show_ad">Olá,\n\n Primeiramente nos desculpe o incomodo, porém para o Desenvolvedor faturar um
         pouquinho exibiremos um breve anúncio (que pode ser pulado) ao entrar na tela de atividades, dessa forma não
@@ -64,6 +64,6 @@
     <string name="menu_remove">Remover</string>
     <string name="activity_removed">Atividade removida</string>
     <string name="confirm_delete">Você confirma excluir atividade?</string>
-    <string name="info_last_lap">Última volta não contabilizada na distância/pace</string>
-    <string name="menu_share">Share</string>
+    <string name="info_last_lap">Última volta não contabilizada na distância e no ritmo</string>
+    <string name="menu_share">Compartilhar</string>
 </resources>
