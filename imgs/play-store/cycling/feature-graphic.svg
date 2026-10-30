@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+<title>CYCLING STOPWATCH Play Store feature graphic</title>
+<defs><linearGradient id="brand" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#3447A4"/><stop offset="1" stop-color="#6377E4"/></linearGradient></defs>
+<rect width="1024" height="500" fill="url(#brand)"/>
+<g fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-weight="700" letter-spacing="3.4">
+  <text x="72" y="208" font-size="68">LAPS</text>
+  <text x="72" y="282" font-size="68">COUNTER</text>
+  <text x="76" y="350" font-size="33" letter-spacing="3.4" font-weight="600">CYCLING STOPWATCH</text>
+</g>
+<g transform="translate(535 7) scale(5.1)" opacity=".88" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round">
+  <circle cx="40" cy="43" r="26"/>
+  <path d="M40 17V9m-8 0h16M40 43l15-13M40 43V26"/>
+</g>
+<path d="M350 453 C495 364 698 489 1028 395" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" opacity=".56"/>
+</svg>
