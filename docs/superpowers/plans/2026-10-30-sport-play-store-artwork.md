@@ -38,7 +38,7 @@
 ### Task 2: Update launcher resources and release version
 
 - [x] Mirror the Running stopwatch and Cycling bicycle marks in adaptive and legacy launcher resources.
-- [x] Use the same sport-specific gradient family in adaptive icon backgrounds; update legacy fallback artwork.
+- [x] Use the same sport-specific gradient family in adaptive and legacy icon backgrounds, including Android 24–25.
 - [x] Set version 2.2.4 / code 12.
 - [x] Copy the existing ignored `keystore.properties` into this worktree without printing or committing its contents.
 - [x] Verify key alias/fingerprint locally and against each Play app's Upload key certificate.

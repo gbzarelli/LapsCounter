@@ -8,7 +8,7 @@ The selected A visual direction is implemented here:
 - `cycling/app-icon.svg` and `cycling/app-icon.png`: blue gradient with the white bicycle mark.
 - Swimming's launcher and Play listing app icon remain unchanged.
 
-PNG exports are 512 × 512 RGBA. Android adaptive launcher resources use the corresponding VectorDrawable art and sport-gradient background under `lapsCounter/src/running/res/` and `lapsCounter/src/cycling/res/`.
+PNG exports are 512 × 512 RGBA. Android adaptive and legacy launcher resources use the corresponding VectorDrawable art and sport-gradient background under `lapsCounter/src/running/res/` and `lapsCounter/src/cycling/res/`.
 
 ## Play Store feature graphics
 
