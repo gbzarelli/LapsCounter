@@ -28,6 +28,19 @@ class WearTimerScreenTest {
     private lateinit var database: WatchDatabase
     private lateinit var repository: WatchActivityRepository
     private lateinit var model: WearViewModel
+    private lateinit var testStore: FailingHistoryStore
+    private class FailingHistoryStore(private val delegate: WatchActivityStore) : WatchActivityStore by delegate {
+        var failHistory = false
+        var failDetail = false
+        override suspend fun history(): List<WatchActivityRecord> {
+            if (failHistory) error("history unavailable")
+            return delegate.history()
+        }
+        override suspend fun activity(id: String): WatchActivityRecord? {
+            if (failDetail) error("detail unavailable")
+            return delegate.activity(id)
+        }
+    }
     private val store = ViewModelStore()
     private var now = 1_000L
 
@@ -37,7 +50,8 @@ class WearTimerScreenTest {
         }
         database = Room.inMemoryDatabaseBuilder(context, WatchDatabase::class.java).build()
         repository = WatchActivityRepository(database)
-        model = WearViewModel(repository, context.resources, ElapsedRealtimeClock { now }, { 1_735_732_800_000L })
+        testStore = FailingHistoryStore(repository)
+        model = WearViewModel(testStore, context.resources, ElapsedRealtimeClock { now }, { 1_735_732_800_000L })
         store.put("wear", model)
         compose.setContent { MaterialTheme { WearApp(model) } }
         compose.waitUntil(10_000) { model.state.value.ready }
@@ -98,7 +112,6 @@ class WearTimerScreenTest {
         assertAction(R.string.action_discard)
         val displayedName = model.state.value.generatedName
         click(R.string.action_save)
-        compose.waitUntil(10_000) { model.state.value.history.size == 1 }
         val record = runBlocking { repository.history().single() }
         assertEquals(displayedName, record.activity.name)
         assertTrue(record.activity.name.startsWith(context.getString(R.string.sport_name)))
@@ -107,6 +120,7 @@ class WearTimerScreenTest {
         assertEquals(WatchSyncStatus.PENDING, record.activity.syncStatus)
         assertNull(runBlocking { repository.loadActive() })
         click(R.string.history_title)
+        compose.waitUntil(10_000) { model.state.value.history.size == 1 }
         reveal(record.activity.name).performClick()
         reveal(context.getString(R.string.lap_number, 1)).assertIsDisplayed()
     }
@@ -130,6 +144,60 @@ class WearTimerScreenTest {
         compose.waitUntil(10_000) { model.state.value.snapshot?.state == br.com.helpdev.lapscounter.wear.timer.WatchSessionState.IDLE }
         assertTrue(runBlocking { repository.history().isEmpty() })
         assertNull(runBlocking { repository.loadActive() })
+    }
+
+
+    @Test fun timerStartsWhenHistoryCannotBeRead() {
+        testStore.failHistory = true
+        val second = WearViewModel(testStore, context.resources, ElapsedRealtimeClock { now })
+        store.put("second", second)
+        compose.waitUntil(10_000) { second.state.value.ready }
+        second.start()
+        compose.waitUntil(10_000) { second.state.value.snapshot?.state == br.com.helpdev.lapscounter.wear.timer.WatchSessionState.RUNNING }
+    }
+
+    @Test fun saveClosesSummaryWhenHistoryIsUnavailable() {
+        click(R.string.action_start)
+        click(R.string.action_pause)
+        click(R.string.action_stop)
+        testStore.failHistory = true
+        click(R.string.action_save)
+        compose.waitUntil(10_000) { model.state.value.snapshot?.state == br.com.helpdev.lapscounter.wear.timer.WatchSessionState.IDLE }
+        assertEquals(1, runBlocking { repository.history().size })
+        assertNull(runBlocking { repository.loadActive() })
+        action(R.string.action_save).assertDoesNotExist()
+    }
+
+    @Test fun missingOrUnreadableDetailShowsErrorInsteadOfPreviousActivity() {
+        click(R.string.action_start)
+        click(R.string.action_pause)
+        click(R.string.action_stop)
+        click(R.string.action_save)
+        val record = runBlocking { repository.history().single() }
+        model.loadActivity(record.activity.id)
+        compose.waitUntil(10_000) { model.state.value.detail?.activity?.id == record.activity.id }
+        model.loadActivity("missing")
+        compose.waitUntil(10_000) { model.state.value.detailError }
+        assertNull(model.state.value.detail)
+        model.loadActivity(record.activity.id)
+        compose.waitUntil(10_000) { model.state.value.detail?.activity?.id == record.activity.id }
+        testStore.failDetail = true
+        model.loadActivity("missing")
+        compose.waitUntil(10_000) { model.state.value.detailError }
+        assertNull(model.state.value.detail)
+        click(R.string.history_title)
+        compose.waitUntil(10_000) { model.state.value.history.size == 1 }
+        reveal(record.activity.name).performClick()
+        compose.waitUntil(10_000) { model.state.value.detailError }
+        action(R.string.activity_read_error).assertIsDisplayed()
+    }
+
+    @Test fun historyReadFailureShowsErrorWhileTimerRemainsUsable() {
+        testStore.failHistory = true
+        click(R.string.history_title)
+        compose.waitUntil(10_000) { model.state.value.historyError }
+        action(R.string.history_read_error).assertIsDisplayed()
+        assertTrue(model.state.value.ready)
     }
 
     @Test fun settingsPersistDistanceAndFinalLapChoiceAndApplyToNextSession() {

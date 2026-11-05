@@ -1,0 +1,66 @@
+package br.com.helpdev.lapscounter.wear.ui
+
+import android.content.Context
+import android.view.WindowManager
+import androidx.activity.ComponentActivity
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.test.*
+import androidx.compose.ui.test.junit4.StateRestorationTester
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.lifecycle.ViewModelStore
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.wear.compose.material3.MaterialTheme
+import br.com.helpdev.lapscounter.wear.R
+import br.com.helpdev.lapscounter.wear.data.WatchActivityRepository
+import br.com.helpdev.lapscounter.wear.data.WatchDatabase
+import br.com.helpdev.lapscounter.wear.timer.ElapsedRealtimeClock
+import kotlinx.coroutines.runBlocking
+import org.junit.*
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class WearDetailRestorationTest {
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+    private val context: Context = ApplicationProvider.getApplicationContext()
+    private val store = ViewModelStore()
+    private lateinit var database: WatchDatabase
+
+    @After fun cleanup() { store.clear(); database.close() }
+
+    @Test fun restoredDetailRouteLoadsSelectedRecordIntoNewViewModel() {
+        compose.activityRule.scenario.onActivity { it.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
+        database = Room.inMemoryDatabaseBuilder(context, WatchDatabase::class.java).build()
+        val repository = WatchActivityRepository(database)
+        val first = WearViewModel(repository, context.resources, ElapsedRealtimeClock { 1000L }, { 1_735_732_800_000L })
+        store.put("first", first)
+        val current = mutableStateOf(first)
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent { MaterialTheme { WearApp(current.value) } }
+        compose.waitUntil(10_000) { first.state.value.ready }
+        fun click(id: Int) {
+            val text = context.getString(id)
+            compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(text))
+            compose.onNodeWithText(text).performClick()
+            compose.waitForIdle()
+            compose.waitUntil(10_000) { !first.state.value.busy }
+        }
+        click(R.string.action_start)
+        click(R.string.action_pause)
+        click(R.string.action_stop)
+        click(R.string.action_save)
+        val record = runBlocking { repository.history().single() }
+        click(R.string.history_title)
+        compose.waitUntil(10_000) { first.state.value.history.size == 1 }
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(record.activity.name))
+        compose.onNodeWithText(record.activity.name).performClick()
+        compose.waitUntil(10_000) { first.state.value.detail?.activity?.id == record.activity.id }
+        val second = WearViewModel(repository, context.resources, ElapsedRealtimeClock { 1000L })
+        store.put("second", second)
+        compose.runOnIdle { current.value = second }
+        restoration.emulateSavedInstanceStateRestore()
+        compose.waitUntil(10_000) { second.state.value.detail?.activity?.id == record.activity.id }
+        compose.onNodeWithText(record.activity.name).assertIsDisplayed()
+    }
+}

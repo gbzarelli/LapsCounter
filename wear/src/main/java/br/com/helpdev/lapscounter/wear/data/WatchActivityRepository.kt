@@ -23,11 +23,21 @@ data class WatchActivityRecord(val activity: WatchActivityEntity, val laps: List
     )
 }
 
+interface WatchActivityStore {
+    suspend fun persistActive(snapshot: WatchSessionSnapshot)
+    suspend fun loadActive(): WatchSessionSnapshot?
+    suspend fun saveCompleted(snapshot: WatchSessionSnapshot, name: String, description: String? = null)
+    suspend fun history(): List<WatchActivityRecord>
+    suspend fun activity(id: String): WatchActivityRecord?
+    suspend fun settings(flavorId: String): WearSettingsEntity?
+    suspend fun saveSettings(settings: WearSettingsEntity)
+}
+
 /** Room is authoritative. Await transition writes; reading timer ticks never writes to disk. */
-class WatchActivityRepository(private val database: WatchDatabase) {
+class WatchActivityRepository(private val database: WatchDatabase) : WatchActivityStore {
     private val dao = database.activityDao()
 
-    suspend fun persistActive(snapshot: WatchSessionSnapshot) = database.withTransaction {
+    override suspend fun persistActive(snapshot: WatchSessionSnapshot) = database.withTransaction {
         if (snapshot.state == WatchSessionState.DISCARDED || snapshot.state == WatchSessionState.IDLE) {
             dao.deleteActive(snapshot.id)
         } else {
@@ -37,11 +47,11 @@ class WatchActivityRepository(private val database: WatchDatabase) {
         }
     }
 
-    suspend fun loadActive(): WatchSessionSnapshot? = database.withTransaction {
+    override suspend fun loadActive(): WatchSessionSnapshot? = database.withTransaction {
         dao.active()?.let { WatchActivityRecord(it, dao.laps(it.id)).toSnapshot() }
     }
 
-    suspend fun saveCompleted(snapshot: WatchSessionSnapshot, name: String, description: String? = null) = database.withTransaction {
+    override suspend fun saveCompleted(snapshot: WatchSessionSnapshot, name: String, description: String?) = database.withTransaction {
         require(snapshot.state == WatchSessionState.STOPPED) { "Stop the session before saving" }
         require(name.isNotBlank())
         val existing = dao.activity(snapshot.id)
@@ -49,17 +59,17 @@ class WatchActivityRepository(private val database: WatchDatabase) {
         if (existing?.isActive != false) write(snapshot, isActive = false, name = name, description = description)
     }
 
-    suspend fun history(): List<WatchActivityRecord> = database.withTransaction {
+    override suspend fun history(): List<WatchActivityRecord> = database.withTransaction {
         dao.history().map { WatchActivityRecord(it, dao.laps(it.id)) }
     }
 
-    suspend fun activity(id: String): WatchActivityRecord? = database.withTransaction {
+    override suspend fun activity(id: String): WatchActivityRecord? = database.withTransaction {
         dao.activity(id)?.let { WatchActivityRecord(it, dao.laps(id)) }
     }
 
-    suspend fun settings(flavorId: String): WearSettingsEntity? = dao.settings(flavorId)
+    override suspend fun settings(flavorId: String): WearSettingsEntity? = dao.settings(flavorId)
 
-    suspend fun saveSettings(settings: WearSettingsEntity) {
+    override suspend fun saveSettings(settings: WearSettingsEntity) {
         require(settings.flavorId.isNotBlank())
         require(settings.lapDistanceMeters.isFinite() && settings.lapDistanceMeters > 0)
         dao.upsertSettings(settings)

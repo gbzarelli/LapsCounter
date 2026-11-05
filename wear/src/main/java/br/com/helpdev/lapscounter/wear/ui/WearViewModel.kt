@@ -21,7 +21,7 @@ import java.util.Locale
 
 /** All mutations and their durable acknowledgements share one coroutine lock. */
 class WearViewModel(
-    private val repository: WatchActivityRepository,
+    private val repository: WatchActivityStore,
     private val resources: Resources,
     private val clock: ElapsedRealtimeClock = AndroidElapsedRealtimeClock,
     private val wallClock: () -> Long = System::currentTimeMillis,
@@ -31,6 +31,8 @@ class WearViewModel(
     val flavorId = profile.sportId.name.lowercase(Locale.ROOT)
     private val mutex = Mutex()
     private var controller: WatchTimerController? = null
+    private var detailRequest = 0
+    private var historyRequest = 0
     private val mutableState = MutableStateFlow(WearUiState())
     val state: StateFlow<WearUiState> = mutableState.asStateFlow()
 
@@ -42,7 +44,7 @@ class WearViewModel(
                 val restored = repository.loadActive()
                 controller = timer(settings, restored)
                 mutableState.value = mutableState.value.copy(
-                    ready = true, settings = settings, history = repository.history(),
+                    ready = true, settings = settings,
                 )
                 display()
             }
@@ -116,7 +118,6 @@ class WearViewModel(
                 val snapshot = controller?.snapshot() ?: return@operation
                 if (snapshot.state != WatchSessionState.STOPPED) return@operation
                 repository.saveCompleted(snapshot, generatedName(snapshot))
-                mutableState.value = state.value.copy(history = repository.history())
                 reset()
             }
         }
@@ -134,9 +135,35 @@ class WearViewModel(
         }
     }
 
-    fun loadActivity(id: String) {
+    fun loadHistory() {
+        val request = ++historyRequest
+        mutableState.value = state.value.copy(historyLoading = true, historyError = false)
         viewModelScope.launch {
-            operation { mutableState.value = state.value.copy(detail = repository.activity(id)) }
+            try {
+                val records = repository.history()
+                if (request == historyRequest) mutableState.value = state.value.copy(history = records, historyLoading = false)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                if (request == historyRequest) mutableState.value = state.value.copy(historyLoading = false, historyError = true)
+            }
+        }
+    }
+
+    fun loadActivity(id: String) {
+        val request = ++detailRequest
+        mutableState.value = state.value.copy(detailId = id, detail = null, detailError = false)
+        viewModelScope.launch {
+            try {
+                val record = repository.activity(id)
+                if (request == detailRequest) {
+                    mutableState.value = state.value.copy(detail = record, detailError = record == null)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                if (request == detailRequest) mutableState.value = state.value.copy(detailError = true)
+            }
         }
     }
 
@@ -178,6 +205,10 @@ data class WearUiState(
     val generatedName: String = "",
     val settings: WearSettingsEntity? = null,
     val history: List<WatchActivityRecord> = emptyList(),
+    val historyLoading: Boolean = false,
+    val historyError: Boolean = false,
+    val detailId: String? = null,
     val detail: WatchActivityRecord? = null,
+    val detailError: Boolean = false,
     val syncStatus: WatchSyncStatus = WatchSyncStatus.PENDING,
 )

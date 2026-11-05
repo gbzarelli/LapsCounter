@@ -27,4 +27,6 @@
     <string name="sync_synced">Sincronizado</string>
     <string name="sync_unavailable">Celular indisponível</string>
     <string name="activity_generated_name">%1$s · %2$s</string>
+    <string name="history_read_error">Não foi possível carregar o histórico.</string>
+    <string name="activity_read_error">Não foi possível carregar a atividade.</string>
 </resources>

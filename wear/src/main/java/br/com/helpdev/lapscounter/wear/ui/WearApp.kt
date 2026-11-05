@@ -1,5 +1,6 @@
 package br.com.helpdev.lapscounter.wear.ui
 
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
@@ -32,12 +33,20 @@ fun WearApp(model: WearViewModel) {
             }
         }
         composable("history") {
-            ActivityHistoryScreen(state.history) {
-                model.loadActivity(it)
-                navigation.navigate("detail")
+            LaunchedEffect(model) { model.loadHistory() }
+            ActivityHistoryScreen(state.history, state.historyLoading, state.historyError) {
+                navigation.navigate("detail/${Uri.encode(it)}")
             }
         }
-        composable("detail") { ActivityDetailScreen(state.detail, model::metrics) }
+        composable("detail/{activityId}") { entry ->
+            val id = requireNotNull(entry.arguments?.getString("activityId"))
+            LaunchedEffect(id, model) { model.loadActivity(id) }
+            ActivityDetailScreen(
+                if (state.detailId == id) state.detail else null,
+                state.detailId == id && state.detailError,
+                model::metrics,
+            )
+        }
         composable("settings") {
             state.settings?.let { settings ->
                 SettingsScreen(settings, state.busy, state.error) { distance, countLastLap ->

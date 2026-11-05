@@ -10,21 +10,23 @@ import br.com.helpdev.lapscounter.wear.data.*
 import br.com.helpdev.lapscounter.wear.timer.WatchSessionSnapshot
 
 @Composable
-fun ActivityHistoryScreen(history: List<WatchActivityRecord>, onSelect: (String) -> Unit) {
+fun ActivityHistoryScreen(history: List<WatchActivityRecord>, loading: Boolean, error: Boolean, onSelect: (String) -> Unit) {
     WearList {
         item { WearText(stringResource(R.string.history_title)) }
-        if (history.isEmpty()) item { WearText(stringResource(R.string.history_empty)) }
-        items(history, key = { it.activity.id }) { record ->
+        if (loading) item { WearText(stringResource(R.string.loading)) }
+        else if (error) item { WearText(stringResource(R.string.history_read_error)) }
+        else if (history.isEmpty()) item { WearText(stringResource(R.string.history_empty)) }
+        items(if (loading || error) emptyList() else history, key = { it.activity.id }) { record ->
             WearAction(record.activity.name) { onSelect(record.activity.id) }
         }
     }
 }
 
 @Composable
-fun ActivityDetailScreen(record: WatchActivityRecord?, metrics: (WatchSessionSnapshot) -> SportMetricsPresentation) {
+fun ActivityDetailScreen(record: WatchActivityRecord?, error: Boolean, metrics: (WatchSessionSnapshot) -> SportMetricsPresentation) {
     WearList {
         if (record == null) {
-            item { WearText(stringResource(R.string.loading)) }
+            item { WearText(stringResource(if (error) R.string.activity_read_error else R.string.loading)) }
         } else {
             val presentation = metrics(record.toSnapshot())
             item { WearText(record.activity.name) }

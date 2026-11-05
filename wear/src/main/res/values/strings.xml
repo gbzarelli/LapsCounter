@@ -27,4 +27,6 @@
     <string name="sync_synced">Synced</string>
     <string name="sync_unavailable">Phone unavailable</string>
     <string name="activity_generated_name">%1$s · %2$s</string>
+    <string name="history_read_error">Could not load history.</string>
+    <string name="activity_read_error">Could not load activity.</string>
 </resources>
