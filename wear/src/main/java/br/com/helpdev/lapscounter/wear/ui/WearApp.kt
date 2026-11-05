@@ -1,0 +1,82 @@
+package br.com.helpdev.lapscounter.wear.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
+import androidx.wear.compose.foundation.lazy.ScalingLazyListScope
+import androidx.wear.compose.material3.*
+import androidx.wear.compose.navigation.*
+import br.com.helpdev.lapscounter.wear.R
+import br.com.helpdev.lapscounter.wear.timer.WatchSessionState
+
+@Composable
+fun WearApp(model: WearViewModel) {
+    val state by model.state.collectAsStateWithLifecycle()
+    val navigation = rememberSwipeDismissableNavController()
+    SwipeDismissableNavHost(navigation, startDestination = "timer") {
+        composable("timer") {
+            if (!state.ready) {
+                WearList { item { WearText(stringResource(if (state.error) R.string.storage_error else R.string.loading)) } }
+            } else if (state.snapshot?.state == WatchSessionState.STOPPED) {
+                SessionSummaryScreen(state, model::save, model::discard)
+            } else {
+                TimerScreen(state, model::start, model::lap, model::pause, model::resume, model::stop,
+                    { navigation.navigate("history") }, { navigation.navigate("settings") })
+            }
+        }
+        composable("history") {
+            ActivityHistoryScreen(state.history) {
+                model.loadActivity(it)
+                navigation.navigate("detail")
+            }
+        }
+        composable("detail") { ActivityDetailScreen(state.detail, model::metrics) }
+        composable("settings") {
+            state.settings?.let { settings ->
+                SettingsScreen(settings, state.busy, state.error) { distance, countLastLap ->
+                    model.saveSettings(distance, countLastLap) { navigation.popBackStack() }
+                }
+            }
+        }
+    }
+}
+
+/** Extra inset and scrollable items keep every field reachable on the smallest round display. */
+@Composable
+internal fun WearList(content: ScalingLazyListScope.() -> Unit) {
+    ScalingLazyColumn(
+        modifier = Modifier.fillMaxSize().background(Color.Black),
+        contentPadding = PaddingValues(horizontal = 30.dp, vertical = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        content = content,
+    )
+}
+
+@Composable
+internal fun WearText(text: String) {
+    Text(text, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+}
+
+@Composable
+internal fun WearAction(text: String, enabled: Boolean = true, onClick: () -> Unit) {
+    Button(onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+        Text(text, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+    }
+}
+
+@Composable
+internal fun StorageError(error: Boolean) {
+    if (error) WearText(stringResource(R.string.storage_error))
+}
+
+internal fun elapsedLabel(millis: Long): String {
+    val seconds = millis / 1000
+    return "%02d:%02d:%02d".format(seconds / 3600, seconds / 60 % 60, seconds % 60)
+}

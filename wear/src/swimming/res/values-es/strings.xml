@@ -1,4 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">Cronómetro de natación</string>
+    <string name="sport_name">Natación</string>
+    <string name="pace_reference_unit">100 m</string>
 </resources>

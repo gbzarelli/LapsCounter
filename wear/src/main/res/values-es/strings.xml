@@ -1,4 +1,30 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="title_stopwatch">Cronómetro</string>
+    <string name="action_start">Iniciar</string>
+    <string name="action_lap">Vuelta</string>
+    <string name="action_pause">Pausar</string>
+    <string name="action_resume">Reanudar</string>
+    <string name="action_stop">Detener</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_discard">Descartar</string>
+    <string name="history_title">Historial</string>
+    <string name="settings_title">Ajustes</string>
+    <string name="summary_title">Resumen</string>
+    <string name="history_empty">Sin actividades guardadas</string>
+    <string name="loading">Cargando…</string>
+    <string name="storage_error">Error al guardar. Inténtalo de nuevo.</string>
+    <string name="lap_number">Vuelta %1$d</string>
+    <string name="laps_total">%1$d vueltas</string>
+    <string name="lap_distance">Distancia: %1$.0f m</string>
+    <string name="distance_increase">Aumentar distancia</string>
+    <string name="distance_decrease">Reducir distancia</string>
+    <string name="count_final_lap">Contar vuelta final</string>
+    <string name="setting_on">Activado</string>
+    <string name="setting_off">Desactivado</string>
+    <string name="final_lap">Vuelta final</string>
+    <string name="sync_pending">Esperando envío</string>
+    <string name="sync_synced">Sincronizado</string>
+    <string name="sync_unavailable">Teléfono no disponible</string>
+    <string name="activity_generated_name">%1$s · %2$s</string>
 </resources>

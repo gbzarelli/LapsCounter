@@ -1,4 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">Cronômetro de ciclismo</string>
+    <string name="sport_name">Ciclismo</string>
+    <string name="pace_reference_unit">km</string>
 </resources>

@@ -1,4 +1,30 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="title_stopwatch">Stopwatch</string>
+    <string name="action_start">Start</string>
+    <string name="action_lap">Lap</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_resume">Resume</string>
+    <string name="action_stop">Stop</string>
+    <string name="action_save">Save</string>
+    <string name="action_discard">Discard</string>
+    <string name="history_title">History</string>
+    <string name="settings_title">Settings</string>
+    <string name="summary_title">Summary</string>
+    <string name="history_empty">No saved activities</string>
+    <string name="loading">Loading…</string>
+    <string name="storage_error">Could not save. Please try again.</string>
+    <string name="lap_number">Lap %1$d</string>
+    <string name="laps_total">%1$d laps</string>
+    <string name="lap_distance">Lap distance: %1$.0f m</string>
+    <string name="distance_increase">Increase distance</string>
+    <string name="distance_decrease">Decrease distance</string>
+    <string name="count_final_lap">Count final lap</string>
+    <string name="setting_on">On</string>
+    <string name="setting_off">Off</string>
+    <string name="final_lap">Final lap</string>
+    <string name="sync_pending">Waiting to sync</string>
+    <string name="sync_synced">Synced</string>
+    <string name="sync_unavailable">Phone unavailable</string>
+    <string name="activity_generated_name">%1$s · %2$s</string>
 </resources>
