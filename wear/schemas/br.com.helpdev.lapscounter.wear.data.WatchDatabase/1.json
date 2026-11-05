@@ -1,0 +1,207 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "5e5a3344a0fa5ffcf50419ef6fb001a2",
+    "entities": [
+      {
+        "tableName": "watch_activities",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `flavorId` TEXT NOT NULL, `startWallClockMillis` INTEGER, `startElapsedRealtimeMillis` INTEGER, `pauseElapsedRealtimeMillis` INTEGER, `stopElapsedRealtimeMillis` INTEGER, `accumulatedPausedMillis` INTEGER NOT NULL, `elapsedMillis` INTEGER NOT NULL, `state` TEXT NOT NULL, `lapDistanceMeters` REAL NOT NULL, `countLastLap` INTEGER NOT NULL, `syncStatus` TEXT NOT NULL, `isActive` INTEGER NOT NULL, `name` TEXT NOT NULL, `description` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "flavorId",
+            "columnName": "flavorId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startWallClockMillis",
+            "columnName": "startWallClockMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "startElapsedRealtimeMillis",
+            "columnName": "startElapsedRealtimeMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "pauseElapsedRealtimeMillis",
+            "columnName": "pauseElapsedRealtimeMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "stopElapsedRealtimeMillis",
+            "columnName": "stopElapsedRealtimeMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "accumulatedPausedMillis",
+            "columnName": "accumulatedPausedMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "elapsedMillis",
+            "columnName": "elapsedMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lapDistanceMeters",
+            "columnName": "lapDistanceMeters",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "countLastLap",
+            "columnName": "countLastLap",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "syncStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isActive",
+            "columnName": "isActive",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "watch_laps",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`activityId` TEXT NOT NULL, `sequence` INTEGER NOT NULL, `durationMillis` INTEGER NOT NULL, `elapsedMillis` INTEGER NOT NULL, `isFinalPartialLap` INTEGER NOT NULL, PRIMARY KEY(`activityId`, `sequence`), FOREIGN KEY(`activityId`) REFERENCES `watch_activities`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "activityId",
+            "columnName": "activityId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sequence",
+            "columnName": "sequence",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durationMillis",
+            "columnName": "durationMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "elapsedMillis",
+            "columnName": "elapsedMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isFinalPartialLap",
+            "columnName": "isFinalPartialLap",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "activityId",
+            "sequence"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_watch_laps_activityId",
+            "unique": false,
+            "columnNames": [
+              "activityId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_watch_laps_activityId` ON `${TABLE_NAME}` (`activityId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "watch_activities",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "activityId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "wear_settings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`flavorId` TEXT NOT NULL, `lapDistanceMeters` REAL NOT NULL, `countLastLap` INTEGER NOT NULL, PRIMARY KEY(`flavorId`))",
+        "fields": [
+          {
+            "fieldPath": "flavorId",
+            "columnName": "flavorId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lapDistanceMeters",
+            "columnName": "lapDistanceMeters",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "countLastLap",
+            "columnName": "countLastLap",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "flavorId"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5e5a3344a0fa5ffcf50419ef6fb001a2')"
+    ]
+  }
+}
