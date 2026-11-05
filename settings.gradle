@@ -23,4 +23,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = 'LapsCounter'
-include ':lapsCounter', ':sportCore'
+include ':lapsCounter', ':sportCore', ':wear'

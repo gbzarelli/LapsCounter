@@ -1,0 +1,129 @@
+import java.util.Properties
+
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.kotlin.compose)
+}
+
+def appVersionCode = libs.versions.appVersionCode.get().toInteger()
+def wearVersionCodeOffset = 1_000_000
+if (appVersionCode < 1 || appVersionCode >= wearVersionCodeOffset) {
+    throw new GradleException('appVersionCode must be between 1 and 999999 to keep phone and Wear version code ranges separate.')
+}
+
+def releaseSigningProperties = new Properties()
+def releaseSigningPropertiesFile = rootProject.file('keystore.properties')
+if (releaseSigningPropertiesFile.isFile()) {
+    releaseSigningPropertiesFile.withInputStream { releaseSigningProperties.load(it) }
+}
+
+def hasReleaseSigningValues = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword'].every {
+    releaseSigningProperties.getProperty(it)?.trim()
+}
+def releaseStoreFile = releaseSigningProperties.getProperty('storeFile')?.trim()
+def hasReleaseSigning = hasReleaseSigningValues && rootProject.file(releaseStoreFile).isFile()
+
+android {
+    namespace = 'br.com.helpdev.lapscounter.wear'
+    compileSdk libs.versions.compileSdk.get().toInteger()
+
+    defaultConfig {
+        applicationId = 'br.com.helpdev.lapscounter'
+        minSdk 30
+        targetSdk libs.versions.targetSdk.get().toInteger()
+        versionCode wearVersionCodeOffset + appVersionCode
+        versionName libs.versions.appVersionName.get()
+        testInstrumentationRunner = 'androidx.test.runner.AndroidJUnitRunner'
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create('release') {
+                storeFile = rootProject.file(releaseSigningProperties.getProperty('storeFile'))
+                storePassword = releaseSigningProperties.getProperty('storePassword')
+                keyAlias = releaseSigningProperties.getProperty('keyAlias')
+                keyPassword = releaseSigningProperties.getProperty('keyPassword')
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix = '.debug'
+        }
+        release {
+            minifyEnabled = false
+            if (hasReleaseSigning) signingConfig = signingConfigs.getByName('release')
+        }
+    }
+
+    flavorDimensions += 'sport'
+    productFlavors {
+        swimming {
+            dimension = 'sport'
+            applicationIdSuffix = '.swimming'
+        }
+        running {
+            dimension = 'sport'
+            applicationIdSuffix = '.running'
+        }
+        cycling {
+            dimension = 'sport'
+            applicationIdSuffix = '.cycling'
+        }
+    }
+
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
+}
+
+gradle.taskGraph.whenReady { graph ->
+    def hasReleaseTasks = graph.allTasks.any { task ->
+        task.project == project && task.name ==~ /(?i).*(swimming|running|cycling)release.*/
+    }
+    if (hasReleaseTasks && !hasReleaseSigning) {
+        throw new GradleException(
+            'Release signing is not configured or the keystore file is missing. Set storeFile, storePassword, keyAlias, and keyPassword in the ignored root keystore.properties file.'
+        )
+    }
+}
+
+dependencies {
+    implementation project(':sportCore')
+    implementation libs.androidx.activity.compose
+    implementation libs.androidx.compose.ui
+    implementation libs.androidx.compose.foundation
+    implementation libs.androidx.wear.compose.foundation
+    implementation libs.androidx.wear.compose.material3
+    implementation libs.androidx.wear.compose.navigation
+    implementation libs.androidx.lifecycle.runtime.compose
+    implementation libs.androidx.lifecycle.viewmodel.compose
+    implementation libs.androidx.room.runtime
+    kapt libs.androidx.room.compiler
+    implementation libs.google.wearable
+    implementation libs.kotlinx.coroutines.android
+
+    testImplementation libs.junit
+    testImplementation libs.kotlinx.coroutines.test
+    androidTestImplementation libs.androidx.room.testing
+    androidTestImplementation libs.androidx.test.core.ktx
+    androidTestImplementation libs.androidx.test.ext.junit
+    androidTestImplementation libs.androidx.test.runner
+    androidTestImplementation libs.androidx.compose.ui.test.junit4
+    debugImplementation libs.androidx.compose.ui.test.manifest
+}

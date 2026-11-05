@@ -126,7 +126,7 @@ def validateAdMobRelease = { String flavor ->
 }
 
 gradle.taskGraph.whenReady { graph ->
-    def releaseFlavors = graph.allTasks.collectMany { task ->
+    def releaseFlavors = graph.allTasks.findAll { it.project == project }.collectMany { task ->
         def matcher = task.name =~ /(?i)(swimming|running|cycling)release/
         matcher.find() ? [matcher.group(1).toLowerCase()] : []
     }.unique()
