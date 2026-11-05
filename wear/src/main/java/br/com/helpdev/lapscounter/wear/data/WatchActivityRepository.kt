@@ -27,6 +27,8 @@ interface WatchActivityStore {
     suspend fun persistActive(snapshot: WatchSessionSnapshot)
     suspend fun loadActive(): WatchSessionSnapshot?
     suspend fun saveCompleted(snapshot: WatchSessionSnapshot, name: String, description: String? = null)
+    suspend fun pendingActivities(flavorId: String): List<WatchActivityRecord>
+    suspend fun markSynced(id: String, flavorId: String)
     suspend fun history(): List<WatchActivityRecord>
     suspend fun activity(id: String): WatchActivityRecord?
     suspend fun settings(flavorId: String): WearSettingsEntity?
@@ -58,6 +60,12 @@ class WatchActivityRepository(private val database: WatchDatabase) : WatchActivi
         // Retried save must not revert an acknowledged sync status or rewrite immutable history.
         if (existing?.isActive != false) write(snapshot, isActive = false, name = name, description = description)
     }
+
+    override suspend fun pendingActivities(flavorId: String): List<WatchActivityRecord> = database.withTransaction {
+        dao.pendingActivities(flavorId).map { WatchActivityRecord(it, dao.laps(it.id)) }
+    }
+
+    override suspend fun markSynced(id: String, flavorId: String) { dao.markSynced(id, flavorId) }
 
     override suspend fun history(): List<WatchActivityRecord> = database.withTransaction {
         dao.history().map { WatchActivityRecord(it, dao.laps(it.id)) }

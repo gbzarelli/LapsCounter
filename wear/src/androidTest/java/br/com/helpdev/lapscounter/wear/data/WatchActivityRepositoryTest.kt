@@ -82,6 +82,26 @@ class WatchActivityRepositoryTest {
         assertEquals(1, repository.history().size)
     }
 
+    @Test fun acknowledgementRetainsRecordAndOnlyUpdatesMatchingFlavor() = runBlocking {
+        val timer = WatchTimerController(ElapsedRealtimeClock { now }, "swimming", 50f)
+        timer.start()
+        now = 2_000
+        val completed = timer.stop()
+        repository.saveCompleted(completed, "Saved")
+        assertEquals(listOf(completed.id), repository.pendingActivities("swimming").map { it.activity.id })
+        assertTrue(repository.pendingActivities("running").isEmpty())
+        repository.markSynced(completed.id, "running")
+        assertEquals(WatchSyncStatus.PENDING, repository.activity(completed.id)!!.activity.syncStatus)
+        repository.markSynced(completed.id, "swimming")
+        assertTrue(repository.pendingActivities("swimming").isEmpty())
+        repository.saveCompleted(completed, "Retry")
+        database.close()
+        reopen()
+        assertEquals(WatchSyncStatus.SYNCED, repository.activity(completed.id)!!.activity.syncStatus)
+        assertEquals("Saved", repository.activity(completed.id)!!.activity.name)
+        assertEquals(1, repository.activity(completed.id)!!.laps.size)
+    }
+
     @Test fun discardingActiveSessionPreservesCompletedHistory() = runBlocking {
         val first = WatchTimerController(ElapsedRealtimeClock { now }, "swimming", 50f)
         first.start()

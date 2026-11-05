@@ -14,6 +14,12 @@
         <meta-data
             android:name="com.google.android.wearable.standalone"
             android:value="true" />
+        <service android:name=".sync.ActivityAckListenerService" android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <data android:scheme="wear" android:host="*" android:pathPrefix="/activity-acks/" />
+            </intent-filter>
+        </service>
         <activity
             android:name=".WearMainActivity"
             android:exported="true">

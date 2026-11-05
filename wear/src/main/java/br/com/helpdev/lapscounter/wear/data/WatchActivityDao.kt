@@ -17,6 +17,10 @@ interface WatchActivityDao {
     @Query("SELECT * FROM watch_laps WHERE activityId = :id ORDER BY sequence") suspend fun laps(id: String): List<WatchLapEntity>
     @Query("SELECT * FROM watch_activities WHERE isActive = 0 ORDER BY startWallClockMillis DESC, id")
     suspend fun history(): List<WatchActivityEntity>
+    @Query("SELECT * FROM watch_activities WHERE isActive = 0 AND flavorId = :flavorId AND syncStatus = 'PENDING' ORDER BY id")
+    suspend fun pendingActivities(flavorId: String): List<WatchActivityEntity>
+    @Query("UPDATE watch_activities SET syncStatus = 'SYNCED' WHERE id = :id AND flavorId = :flavorId AND isActive = 0 AND syncStatus = 'PENDING'")
+    suspend fun markSynced(id: String, flavorId: String)
     @Upsert suspend fun upsertSettings(settings: WearSettingsEntity)
     @Query("SELECT * FROM wear_settings WHERE flavorId = :flavorId") suspend fun settings(flavorId: String): WearSettingsEntity?
 }

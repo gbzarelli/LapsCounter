@@ -26,6 +26,7 @@ class WearViewModel(
     private val clock: ElapsedRealtimeClock = AndroidElapsedRealtimeClock,
     private val wallClock: () -> Long = System::currentTimeMillis,
     private val closeDatabase: () -> Unit = {},
+    private val retrySync: suspend () -> Unit = {},
 ) : ViewModel() {
     val profile = SportProfileProvider.get()
     val flavorId = profile.sportId.name.lowercase(Locale.ROOT)
@@ -119,6 +120,21 @@ class WearViewModel(
                 if (snapshot.state != WatchSessionState.STOPPED) return@operation
                 repository.saveCompleted(snapshot, generatedName(snapshot))
                 reset()
+                requestSync()
+            }
+        }
+    }
+
+    fun onAppResumed() {
+        requestSync()
+        if (state.value.history.isNotEmpty()) loadHistory()
+        state.value.detailId?.let(::loadActivity)
+    }
+
+    private fun requestSync() {
+        viewModelScope.launch {
+            try { retrySync() } catch (cancelled: CancellationException) { throw cancelled } catch (_: Exception) {
+                // The durable pending rows are retried on the next resume.
             }
         }
     }
