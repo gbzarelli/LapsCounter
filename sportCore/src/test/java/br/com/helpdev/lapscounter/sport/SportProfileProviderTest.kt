@@ -1,6 +1,6 @@
 package br.com.helpdev.lapscounter.sport
 
-import br.com.helpdev.lapscounter.BuildConfig
+import br.com.helpdev.lapscounter.sportcore.BuildConfig
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

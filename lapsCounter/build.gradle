@@ -141,6 +141,7 @@ gradle.taskGraph.whenReady { graph ->
 }
 
 dependencies {
+    implementation project(':sportCore')
     implementation libs.chronometer.library
     implementation libs.google.mobile.ads
     implementation libs.google.ump

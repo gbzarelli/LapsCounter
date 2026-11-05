@@ -40,8 +40,8 @@ private fun Context.sportLocale() = resources.configuration.locales[0] ?: Locale
 
 fun Context.sportMetricLabels(profile: SportProfile = SportProfileProvider.get()) = SportMetricLabels(
     paceReferenceUnit = getString(
-        when (profile.metricDefinition) {
-            is MetricDefinition.Pace -> if (profile.metricDefinition.referenceDistanceMeters == 100f) {
+        when (val definition = profile.metricDefinition) {
+            is MetricDefinition.Pace -> if (definition.referenceDistanceMeters == 100f) {
                 R.string.metric_pace_reference_100m
             } else {
                 R.string.metric_pace_reference_km
