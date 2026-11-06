@@ -9,7 +9,6 @@ import androidx.wear.compose.material3.MaterialTheme
 import br.com.helpdev.lapscounter.wear.data.WatchActivityRepository
 import br.com.helpdev.lapscounter.wear.data.WatchDatabase
 import br.com.helpdev.lapscounter.wear.sync.*
-import com.google.android.gms.wearable.Wearable
 import br.com.helpdev.lapscounter.wear.ui.WearApp
 import br.com.helpdev.lapscounter.wear.ui.WearViewModel
 
@@ -21,9 +20,9 @@ class WearMainActivity : ComponentActivity() {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 val database = WatchDatabase.open(applicationContext)
                 val repository = WatchActivityRepository(database)
-                val outbox = ActivitySyncOutbox(repository, DataLayerActivitySyncTransport(PlayServicesDataClientAdapter(Wearable.getDataClient(applicationContext))), BuildConfig.FLAVOR)
+                val coordinator = createActivitySyncCoordinator(applicationContext, repository)
                 @Suppress("UNCHECKED_CAST")
-                return WearViewModel(repository, resources, closeDatabase = database::close, retrySync = outbox::retryPending) as T
+                return WearViewModel(repository, resources, closeDatabase = database::close, retrySync = coordinator::recover) as T
             }
         })[WearViewModel::class.java]
         setContent { MaterialTheme { WearApp(model) } }

@@ -127,15 +127,16 @@ class WearViewModel(
 
     fun onAppResumed() {
         requestSync()
-        if (state.value.history.isNotEmpty()) loadHistory()
-        state.value.detailId?.let(::loadActivity)
     }
 
     private fun requestSync() {
         viewModelScope.launch {
             try { retrySync() } catch (cancelled: CancellationException) { throw cancelled } catch (_: Exception) {
-                // The durable pending rows are retried on the next resume.
+                // The durable pending rows are retried on connection or the next resume.
             }
+            // Reconciliation can mark rows synced; read after it completes, not before.
+            if (state.value.history.isNotEmpty()) loadHistory()
+            state.value.detailId?.let(::loadActivity)
         }
     }
 

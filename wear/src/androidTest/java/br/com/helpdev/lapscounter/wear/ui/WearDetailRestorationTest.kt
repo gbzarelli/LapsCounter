@@ -109,4 +109,30 @@ class WearDetailRestorationTest {
         compose.waitUntil(10_000) { model.state.value.detail?.activity?.syncStatus == WatchSyncStatus.SYNCED }
     }
 
+
+    @Test fun appResumeRefreshesHistoryAndDetailAfterAckReconciliation() {
+        database = Room.inMemoryDatabaseBuilder(context, WatchDatabase::class.java).build()
+        val repository = WatchActivityRepository(database)
+        val timer = br.com.helpdev.lapscounter.wear.timer.WatchTimerController(ElapsedRealtimeClock { 1000 }, "swimming", 25f)
+        timer.start()
+        val snapshot = timer.stop()
+        runBlocking { repository.saveCompleted(snapshot, "Saved") }
+        val model = WearViewModel(repository, context.resources,
+            retrySync = { repository.markSynced(snapshot.id, "swimming") })
+        store.put("resume-sync", model)
+        compose.setContent { MaterialTheme { WearApp(model) } }
+        compose.waitUntil(10_000) { model.state.value.ready }
+        compose.runOnIdle {
+            model.loadHistory()
+            model.loadActivity(snapshot.id)
+        }
+        compose.waitUntil(10_000) { model.state.value.history.size == 1 && model.state.value.detail != null }
+        assertEquals(WatchSyncStatus.PENDING, model.state.value.history.single().activity.syncStatus)
+        compose.runOnIdle { model.onAppResumed() }
+        compose.waitUntil(10_000) {
+            model.state.value.history.single().activity.syncStatus == WatchSyncStatus.SYNCED &&
+                model.state.value.detail?.activity?.syncStatus == WatchSyncStatus.SYNCED
+        }
+    }
+
 }
