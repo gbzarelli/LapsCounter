@@ -30,5 +30,5 @@
     <string name="history_read_error">No se pudo cargar el historial.</string>
     <string name="activity_read_error">No se pudo cargar la actividad.</string>
     <string name="action_finish_checkpoint">Finalizar en el registro</string>
-    <string name="reboot_recovery">Se desconoce el tiempo tras el último registro.</string>
+    <string name="reboot_recovery">Tras reinicio: tiempo incierto.</string>
 </resources>

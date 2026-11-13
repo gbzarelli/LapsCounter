@@ -80,6 +80,16 @@ internal fun WearText(text: String) {
 }
 
 @Composable
+internal fun WearNotice(text: String) {
+    Text(
+        text,
+        modifier = Modifier.fillMaxWidth(),
+        textAlign = TextAlign.Center,
+        style = MaterialTheme.typography.bodySmall,
+    )
+}
+
+@Composable
 internal fun WearAction(text: String, enabled: Boolean = true, onClick: () -> Unit) {
     Button(onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
         Text(text, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)

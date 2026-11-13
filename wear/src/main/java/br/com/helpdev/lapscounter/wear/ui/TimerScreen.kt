@@ -38,7 +38,7 @@ fun TimerScreen(
             WatchSessionState.RECOVERY_REQUIRED -> {
                 item { WearAction(stringResource(R.string.action_finish_checkpoint), !state.busy, onFinishAtCheckpoint) }
                 item { WearAction(stringResource(R.string.action_discard), !state.busy, onDiscard) }
-                item { WearText(stringResource(R.string.reboot_recovery)) }
+                item { WearNotice(stringResource(R.string.reboot_recovery)) }
             }
             else -> Unit
         }
