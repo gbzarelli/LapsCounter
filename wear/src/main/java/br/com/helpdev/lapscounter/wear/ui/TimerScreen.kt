@@ -1,6 +1,11 @@
 package br.com.helpdev.lapscounter.wear.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.res.stringResource
 import br.com.helpdev.lapscounter.wear.R
 import br.com.helpdev.lapscounter.wear.timer.WatchSessionState
@@ -17,9 +22,22 @@ fun TimerScreen(
     WearList {
         if (snapshot.state == WatchSessionState.IDLE) {
             item { WearText(stringResource(R.string.sport_name)) }
-            item { WearText(elapsedLabel(snapshot.elapsedMillis)) }
-        } else {
-            item { WearText(elapsedLabel(snapshot.elapsedMillis)) }
+        }
+        item {
+            AnimatedContent(
+                targetState = state.lapFeedback,
+                transitionSpec = { fadeIn(tween(120)) togetherWith fadeOut(tween(120)) },
+                label = "lap-feedback",
+            ) { lap ->
+                if (lap == null) {
+                    WearText(elapsedLabel(snapshot.elapsedMillis))
+                } else {
+                    androidx.compose.foundation.layout.Column {
+                        WearText(stringResource(R.string.lap_number, lap.sequence))
+                        WearText(elapsedLabel(lap.durationMillis))
+                    }
+                }
+            }
         }
         when (snapshot.state) {
             WatchSessionState.IDLE -> {
@@ -47,6 +65,10 @@ fun TimerScreen(
             item { WearText(stringResource(R.string.lap_number, snapshot.laps.size + 1)) }
             item { WearText(state.metrics?.travelledDistance.orEmpty()) }
             item { WearText(state.metrics?.metric.orEmpty()) }
+        }
+        snapshot.laps.asReversed().forEach { lap ->
+            item { WearText(stringResource(R.string.lap_number, lap.sequence)) }
+            item { WearText(elapsedLabel(lap.durationMillis)) }
         }
         item { StorageError(state.error) }
     }

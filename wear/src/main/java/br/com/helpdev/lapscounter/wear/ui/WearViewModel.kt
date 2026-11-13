@@ -8,6 +8,7 @@ import br.com.helpdev.lapscounter.wear.R
 import br.com.helpdev.lapscounter.wear.data.*
 import br.com.helpdev.lapscounter.wear.timer.*
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -33,6 +34,7 @@ class WearViewModel(
     private var controller: WatchTimerController? = null
     private var detailRequest = 0
     private var historyRequest = 0
+    private var lapFeedbackJob: Job? = null
     private val mutableState = MutableStateFlow(WearUiState())
     val state: StateFlow<WearUiState> = mutableState.asStateFlow()
 
@@ -101,14 +103,20 @@ class WearViewModel(
         }
     }
 
-    private fun transition(expected: Set<WatchSessionState>, change: WatchTimerController.() -> WatchSessionSnapshot) {
+    private fun transition(
+        expected: Set<WatchSessionState>,
+        onPersisted: (WatchSessionSnapshot) -> Unit = {},
+        change: WatchTimerController.() -> WatchSessionSnapshot,
+    ) {
         viewModelScope.launch {
             operation {
                 val current = controller ?: return@operation
                 val previous = current.snapshot()
                 if (previous.state !in expected) return@operation
                 try {
-                    repository.persistActive(current.change())
+                    val updated = current.change()
+                    repository.persistActive(updated)
+                    onPersisted(updated)
                 } catch (error: Exception) {
                     controller = timer(requireNotNull(state.value.settings), previous)
                     throw error
@@ -119,7 +127,10 @@ class WearViewModel(
     }
 
     fun start() = transition(setOf(WatchSessionState.IDLE)) { start() }
-    fun lap() = transition(setOf(WatchSessionState.RUNNING)) { recordLap() }
+    fun lap() = transition(
+        setOf(WatchSessionState.RUNNING),
+        onPersisted = ::showLapFeedback,
+    ) { recordLap() }
     fun pause() = transition(setOf(WatchSessionState.RUNNING)) { pause() }
     fun resume() = transition(setOf(WatchSessionState.PAUSED)) { resume() }
     fun finishAtCheckpoint() = transition(setOf(WatchSessionState.RECOVERY_REQUIRED)) { finishAtCheckpoint() }
@@ -218,8 +229,25 @@ class WearViewModel(
     }
 
     private fun reset() {
+        lapFeedbackJob?.cancel()
+        lapFeedbackJob = null
+        mutableState.value = state.value.copy(lapFeedback = null)
         controller = timer(requireNotNull(state.value.settings))
         display()
+    }
+
+    private fun showLapFeedback(snapshot: WatchSessionSnapshot) {
+        val lap = snapshot.laps.lastOrNull() ?: return
+        lapFeedbackJob?.cancel()
+        mutableState.value = state.value.copy(lapFeedback = lap)
+        lapFeedbackJob = viewModelScope.launch {
+            delay(1_000)
+            mutex.withLock {
+                if (state.value.lapFeedback == lap) {
+                    mutableState.value = state.value.copy(lapFeedback = null)
+                }
+            }
+        }
     }
 
     private fun display() {
@@ -251,6 +279,7 @@ data class WearUiState(
     val busy: Boolean = false,
     val error: Boolean = false,
     val snapshot: WatchSessionSnapshot? = null,
+    val lapFeedback: WatchLapSplit? = null,
     val metrics: SportMetricsPresentation? = null,
     val generatedName: String = "",
     val settings: WearSettingsEntity? = null,

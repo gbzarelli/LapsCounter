@@ -109,6 +109,7 @@ dependencies {
     implementation project(':sportCore')
     implementation libs.androidx.activity.compose
     implementation libs.androidx.compose.ui
+    implementation libs.androidx.compose.animation
     implementation libs.androidx.compose.foundation
     implementation libs.androidx.wear.compose.foundation
     implementation libs.androidx.wear.compose.material3
