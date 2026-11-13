@@ -24,6 +24,35 @@ class ActivityDao {
             }
     }
 
+    /** The caller must have a Looper; callbacks run on that same thread after commit/rollback. */
+    fun importSynced(activityEntity: ActivityEntity, onCommitted: () -> Unit, onError: (Throwable) -> Unit) {
+        val realm = try { Realm.getDefaultInstance() } catch (error: Exception) {
+            onError(error)
+            return
+        }
+        try {
+            realm.executeTransactionAsync({ transaction ->
+                // Nested Realm objects have no primary keys. Remove the replaced graph atomically
+                // so retries do not accumulate orphan chronometers or laps.
+                transaction.where(ActivityEntity::class.java).equalTo("id", activityEntity.id)
+                    .findFirst()?.chronometer?.let { old ->
+                        old.laps.deleteAllFromRealm()
+                        old.deleteFromRealm()
+                    }
+                transaction.insertOrUpdate(activityEntity)
+            }, {
+                realm.close()
+                onCommitted()
+            }, { error ->
+                realm.close()
+                onError(error)
+            })
+        } catch (error: Exception) {
+            realm.close()
+            onError(error)
+        }
+    }
+
     fun selectAll(): RealmLiveData<ActivityEntity> {
         return Realm.getDefaultInstance()
             .where(ActivityEntity::class.java)
