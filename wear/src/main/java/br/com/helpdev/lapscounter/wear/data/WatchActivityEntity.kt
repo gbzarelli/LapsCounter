@@ -23,4 +23,6 @@ data class WatchActivityEntity(
     val isActive: Boolean = true,
     val name: String = "",
     val description: String? = null,
+    val bootIdentity: String? = null,
+    val checkpointRealtimeMillis: Long? = null,
 )

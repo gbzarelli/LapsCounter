@@ -6,6 +6,18 @@ import java.util.UUID
 
 class ActivitySyncCodecTest {
     private fun record(laps: Int = 2) = ActivitySyncRecord(1, "swimming", UUID.fromString("123e4567-e89b-12d3-a456-426614174000").toString(), "Swim", "notes", 123L, 25f, 50f, true, 1000L, 20L, (1..laps).map { ActivitySyncLap(it, 100L, it * 100L, it == laps) })
+    // Independently specified v1: LCSY, version 1, swimming, UUID, A, no description,
+    // timestamp 123, 25m/25m, true, 100ms/20ms, one final 100ms lap (big endian).
+    private val goldenV1 = ("4c43535900000001000000087377696d6d696e6700000024" +
+        "31323365343536372d653839622d313264332d613435362d343236363134313734303030" +
+        "000000014100000000000000007b41c8000041c800000100000000000000640000000000000014" +
+        "00000001000000010000000000000064000000000000006401")
+        .chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+    private fun goldenRecord() = ActivitySyncRecord(1, "swimming", "123e4567-e89b-12d3-a456-426614174000",
+        "A", null, 123L, 25f, 25f, true, 100L, 20L, listOf(ActivitySyncLap(1, 100L, 100L, true)))
+    @Test fun encodesIndependentV1GoldenBytes() { assertArrayEquals(goldenV1, ActivitySyncCodec.encode(goldenRecord())) }
+    @Test fun decodesIndependentV1GoldenBytes() { assertEquals(goldenRecord(), ActivitySyncCodec.decode(goldenV1)) }
+
     @Test fun roundTrip() { val value = record(); assertEquals(value, ActivitySyncCodec.decode(ActivitySyncCodec.encode(value))) }
     @Test fun largeValidRecordRoundTrips() { val value = record(5000); val encoded = ActivitySyncCodec.encode(value); assertTrue(encoded.size > 90 * 1024); assertEquals(value, ActivitySyncCodec.decode(encoded)) }
     @Test fun rejectsUnknownVersion() { assertThrows(IllegalArgumentException::class.java) { ActivitySyncCodec.encode(record().copy(schemaVersion = 2)) } }

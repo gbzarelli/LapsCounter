@@ -9,6 +9,7 @@ import androidx.wear.compose.material3.MaterialTheme
 import br.com.helpdev.lapscounter.wear.data.WatchActivityRepository
 import br.com.helpdev.lapscounter.wear.data.WatchDatabase
 import br.com.helpdev.lapscounter.wear.sync.*
+import br.com.helpdev.lapscounter.wear.timer.bootAwareElapsedRealtimeClock
 import br.com.helpdev.lapscounter.wear.ui.WearApp
 import br.com.helpdev.lapscounter.wear.ui.WearViewModel
 
@@ -22,7 +23,10 @@ class WearMainActivity : ComponentActivity() {
                 val repository = WatchActivityRepository(database)
                 val coordinator = createActivitySyncCoordinator(applicationContext, repository)
                 @Suppress("UNCHECKED_CAST")
-                return WearViewModel(repository, resources, closeDatabase = database::close, retrySync = coordinator::recover) as T
+                return WearViewModel(
+                    repository, resources, clock = bootAwareElapsedRealtimeClock(applicationContext),
+                    closeDatabase = database::close, retrySync = coordinator::recover,
+                ) as T
             }
         })[WearViewModel::class.java]
         setContent { MaterialTheme { WearApp(model) } }

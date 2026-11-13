@@ -88,18 +88,20 @@ class WatchActivityRepositoryTest {
         now = 2_000
         val completed = timer.stop()
         repository.saveCompleted(completed, "Saved")
+        val original = repository.activity(completed.id)!!
         assertEquals(listOf(completed.id), repository.pendingActivities("swimming").map { it.activity.id })
         assertTrue(repository.pendingActivities("running").isEmpty())
         repository.markSynced(completed.id, "running")
         assertEquals(WatchSyncStatus.PENDING, repository.activity(completed.id)!!.activity.syncStatus)
         repository.markSynced(completed.id, "swimming")
         assertTrue(repository.pendingActivities("swimming").isEmpty())
-        repository.saveCompleted(completed, "Retry")
+        repository.saveCompleted(completed.copy(laps = emptyList(), elapsedMillis = 999), "Retry", "Overwrite")
         database.close()
         reopen()
         assertEquals(WatchSyncStatus.SYNCED, repository.activity(completed.id)!!.activity.syncStatus)
         assertEquals("Saved", repository.activity(completed.id)!!.activity.name)
-        assertEquals(1, repository.activity(completed.id)!!.laps.size)
+        assertEquals(original.copy(activity = original.activity.copy(syncStatus = WatchSyncStatus.SYNCED)),
+            repository.activity(completed.id))
     }
 
     @Test fun discardingActiveSessionPreservesCompletedHistory() = runBlocking {

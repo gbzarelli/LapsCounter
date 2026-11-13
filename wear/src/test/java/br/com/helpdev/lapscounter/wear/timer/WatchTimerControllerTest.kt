@@ -117,7 +117,95 @@ class WatchTimerControllerTest {
         assertTrue(timer.snapshot().laps.isEmpty())
     }
 
-    private class FakeClock(var time: Long) : ElapsedRealtimeClock {
+    @Test fun runningRebootPreservesCheckpointAndBlocksTransitionsUntilRecovered() {
+        clock.time = 100_000
+        val timer = controller()
+        timer.start()
+        clock.time = 104_000
+        val checkpoint = timer.recordLap()
+        clock.time = 1_000
+        val restored = controller(checkpoint)
+        assertEquals("RECOVERY_REQUIRED", restored.snapshot().state.name)
+        assertEquals(4_000L, restored.snapshot().elapsedMillis)
+        assertEquals(checkpoint.distanceMeters, restored.snapshot().distanceMeters, 0f)
+        assertEquals(listOf(4_000L), restored.snapshot().laps.map { it.durationMillis })
+        assertThrows(IllegalStateException::class.java) { restored.stop() }
+        assertThrows(IllegalStateException::class.java) { restored.recordLap() }
+    }
+
+    @Test fun pausedRebootPreservesCheckpointAndCannotAccumulateNegativePause() {
+        clock.time = 100_000
+        val timer = controller()
+        timer.start()
+        clock.time = 104_000
+        timer.recordLap()
+        clock.time = 105_000
+        val checkpoint = timer.pause()
+        clock.time = 1_000
+        val restored = controller(checkpoint)
+        assertEquals("RECOVERY_REQUIRED", restored.snapshot().state.name)
+        assertEquals(5_000L, restored.snapshot().elapsedMillis)
+        assertEquals(0L, restored.snapshot().accumulatedPausedMillis)
+        assertThrows(IllegalStateException::class.java) { restored.resume() }
+    }
+
+    @Test fun changedBootIsDetectedEvenWhenNewUptimeExceedsOldCheckpoint() {
+        clock.boot = "boot-one"
+        val timer = controller()
+        timer.start()
+        clock.time = 5_000
+        val checkpoint = timer.pause()
+        clock.boot = "boot-two"
+        clock.time = 200_000
+        val restored = controller(checkpoint)
+        assertEquals(WatchSessionState.RECOVERY_REQUIRED, restored.snapshot().state)
+        val stopped = restored.finishAtCheckpoint()
+        assertEquals(4_000L, stopped.elapsedMillis)
+        assertEquals(listOf(4_000L), stopped.laps.map { it.durationMillis })
+        clock.time = 300_000
+        assertEquals(4_000L, restored.snapshot().elapsedMillis)
+    }
+
+    @Test fun recoveryCanBeDiscardedWithoutCreatingCompletedLaps() {
+        val timer = controller()
+        timer.start()
+        clock.time = 5_000
+        val checkpoint = timer.pause()
+        clock.time = 100
+        val restored = controller(checkpoint)
+        assertEquals(WatchSessionState.DISCARDED, restored.discard().state)
+        assertTrue(restored.snapshot().laps.isEmpty())
+    }
+
+    @Test fun legacyActiveSnapshotWithoutBootIdentityRequiresRecoveryEvenWithLargerUptime() {
+        val timer = controller()
+        timer.start()
+        clock.time = 4_000
+        val checkpoint = timer.pause().copy(bootIdentity = null)
+        clock.time = 100_000
+        val restored = controller(checkpoint)
+        assertEquals(WatchSessionState.RECOVERY_REQUIRED, restored.snapshot().state)
+        assertEquals(3_000L, restored.finishAtCheckpoint().elapsedMillis)
+    }
+
+    @Test fun recoveryRetainsOnlyPauseTimeKnownAtCheckpoint() {
+        val timer = controller()
+        timer.start()
+        clock.time = 4_000
+        timer.pause()
+        clock.time = 9_000
+        val checkpoint = timer.snapshot()
+        clock.boot = "boot-two"
+        clock.time = 100_000
+        val stopped = controller(checkpoint).finishAtCheckpoint()
+        assertEquals(3_000L, stopped.elapsedMillis)
+        assertEquals(5_000L, stopped.accumulatedPausedMillis)
+        assertNull(stopped.pauseElapsedRealtimeMillis)
+        assertEquals(9_000L, stopped.stopElapsedRealtimeMillis)
+    }
+
+    private class FakeClock(var time: Long, var boot: String = "boot-one") : ElapsedRealtimeClock {
+        override fun bootIdentity() = boot
         override fun nowMillis() = time
     }
 }

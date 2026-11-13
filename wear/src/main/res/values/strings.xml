@@ -29,4 +29,6 @@
     <string name="activity_generated_name">%1$s · %2$s</string>
     <string name="history_read_error">Could not load history.</string>
     <string name="activity_read_error">Could not load activity.</string>
+    <string name="action_finish_checkpoint">Finish at checkpoint</string>
+    <string name="reboot_recovery">Time after the last checkpoint is unknown.</string>
 </resources>

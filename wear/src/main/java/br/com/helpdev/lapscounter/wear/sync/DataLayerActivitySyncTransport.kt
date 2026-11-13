@@ -7,6 +7,7 @@ import com.google.android.gms.wearable.DataClient
 import com.google.android.gms.wearable.PutDataMapRequest
 import com.google.android.gms.wearable.PutDataRequest
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.util.UUID
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -24,6 +25,9 @@ class DataLayerActivitySyncTransport(private val client: DataClientAdapter) : Ac
     override suspend fun send(record: ActivitySyncRecord) {
         val payload = ActivitySyncCodec.encode(record)
         val mapRequest = PutDataMapRequest.create("/activities/${record.activityId}")
+        // Data Layer coalesces byte-identical puts. A fresh envelope retries phone import
+        // and ACK publication without changing the stable activity identity or codec bytes.
+        mapRequest.dataMap.putString("deliveryAttempt", UUID.randomUUID().toString())
         mapRequest.dataMap.putString("activityId", record.activityId)
         mapRequest.dataMap.putInt("schemaVersion", record.schemaVersion)
         if (payload.size <= 90 * 1024) mapRequest.dataMap.putByteArray("payload", payload)

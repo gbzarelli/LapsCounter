@@ -29,4 +29,6 @@
     <string name="activity_generated_name">%1$s · %2$s</string>
     <string name="history_read_error">Não foi possível carregar o histórico.</string>
     <string name="activity_read_error">Não foi possível carregar a atividade.</string>
+    <string name="action_finish_checkpoint">Finalizar no registro</string>
+    <string name="reboot_recovery">O tempo após o último registro é desconhecido.</string>
 </resources>

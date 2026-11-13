@@ -1,6 +1,9 @@
 package br.com.helpdev.lapscounter.wear.data
 
 import androidx.room.withTransaction
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.map
 import br.com.helpdev.lapscounter.wear.timer.WatchLapSplit
 import br.com.helpdev.lapscounter.wear.timer.WatchSessionSnapshot
 import br.com.helpdev.lapscounter.wear.timer.WatchSessionState
@@ -20,10 +23,13 @@ data class WatchActivityRecord(val activity: WatchActivityEntity, val laps: List
         laps = laps.sortedBy { it.sequence }.map { WatchLapSplit(it.sequence, it.durationMillis, it.elapsedMillis, it.isFinalPartialLap) },
         elapsedMillis = activity.elapsedMillis,
         syncStatus = activity.syncStatus,
+        bootIdentity = activity.bootIdentity,
+        checkpointRealtimeMillis = activity.checkpointRealtimeMillis,
     )
 }
 
 interface WatchActivityStore {
+    fun observeChanges(): Flow<Unit> = emptyFlow()
     suspend fun persistActive(snapshot: WatchSessionSnapshot)
     suspend fun loadActive(): WatchSessionSnapshot?
     suspend fun saveCompleted(snapshot: WatchSessionSnapshot, name: String, description: String? = null)
@@ -35,9 +41,12 @@ interface WatchActivityStore {
     suspend fun saveSettings(settings: WearSettingsEntity)
 }
 
-/** Room is authoritative. Await transition writes; reading timer ticks never writes to disk. */
+/** Room is authoritative. Transition writes and periodic checkpoints are awaited; display ticks never write. */
 class WatchActivityRepository(private val database: WatchDatabase) : WatchActivityStore {
     private val dao = database.activityDao()
+
+    override fun observeChanges(): Flow<Unit> = database.invalidationTracker
+        .createFlow("watch_activities", "watch_laps", emitInitialState = false).map { Unit }
 
     override suspend fun persistActive(snapshot: WatchSessionSnapshot) = database.withTransaction {
         if (snapshot.state == WatchSessionState.DISCARDED || snapshot.state == WatchSessionState.IDLE) {
@@ -100,6 +109,8 @@ class WatchActivityRepository(private val database: WatchDatabase) : WatchActivi
             isActive = isActive,
             name = name,
             description = description,
+            bootIdentity = snapshot.bootIdentity,
+            checkpointRealtimeMillis = snapshot.checkpointRealtimeMillis,
         ))
         dao.deleteLaps(snapshot.id)
         dao.insertLaps(snapshot.laps.map {

@@ -140,6 +140,115 @@ class ActivitySyncRealmIntegrationTest {
         }
     }
 
+    @Test fun transactionBodyFailureRestoresReplacedGraphAndNeverAcknowledges() {
+        withIsolatedRealm { config ->
+            val done = CountDownLatch(1)
+            var error: Throwable? = null
+            var acknowledgements = 0
+            var source: Realm? = null
+            Realm.getInstance(config).use { seed ->
+                seed.executeTransaction { it.insertOrUpdate(ActivitySyncImporter.toActivityEntity(record(), record().sportId)) }
+            }
+            try {
+                instrumentation.runOnMainSync {
+                    val seed = Realm.getInstance(config).also { source = it }
+                    // A managed child belongs to this thread. Copying it on Realm's async
+                    // transaction thread fails inside insertOrUpdate, AFTER old graph deletion.
+                    val invalidReplacement = ActivitySyncImporter.toActivityEntity(record().copy(name = "Replacement"), record().sportId)
+                    invalidReplacement.chronometer = seed.where(ActivityEntity::class.java).findFirst()!!.chronometer
+                    ActivitySyncIngestion(
+                        { _, success, failure -> ActivityDao().importSynced(invalidReplacement, success, failure) },
+                        { _, _ -> acknowledgements++; done.countDown() },
+                        { error = it; done.countDown() },
+                    ).receive("/activities/${record().activityId}", record().activityId, 1, ActivitySyncCodec.encode(record()))
+                }
+                assertTrue(done.await(10, TimeUnit.SECONDS))
+                val transactionFailure = requireNotNull(error)
+                assertTrue(transactionFailure.stackTraceToString(), transactionFailure.stackTraceToString().contains("insertOrUpdate"))
+                assertEquals(0, acknowledgements)
+                Realm.getInstance(config).use { realm ->
+                    val activity = realm.where(ActivityEntity::class.java).findAll().single()
+                    assertEquals(record().activityId, activity.id)
+                    assertEquals("Watch activity", activity.name)
+                    assertEquals(7000L, activity.chronometer!!.runningTime)
+                    assertEquals(500L, activity.chronometer!!.pausedTime)
+                    assertEquals(listOf(4000L, 3000L), activity.chronometer!!.laps.map { it.runningTime })
+                    assertEquals(1L, realm.where(ChronometerEntity::class.java).count())
+                    assertEquals(2L, realm.where(LapEntity::class.java).count())
+                }
+            } finally { instrumentation.runOnMainSync { source?.close() } }
+        }
+    }
+
+    @Test fun changedDeliveryRetriesFirstImportFailureAndFirstAckPutFailure() {
+        withIsolatedRealm { config ->
+            var imports = 0
+            var ackPuts = 0
+            var storedAck: com.google.android.gms.wearable.PutDataRequest? = null
+            val encoded = ActivitySyncCodec.encode(record())
+            val envelopes = mutableListOf<ByteArray>()
+            repeat(3) { attempt ->
+                val request = com.google.android.gms.wearable.PutDataMapRequest.create("/activities/${record().activityId}").apply {
+                    dataMap.putString("deliveryAttempt", "attempt-$attempt")
+                    dataMap.putString("activityId", record().activityId)
+                    dataMap.putInt("schemaVersion", 1)
+                    dataMap.putByteArray("payload", encoded)
+                }.asPutDataRequest()
+                envelopes += request.data!!
+                val dataItem = object : com.google.android.gms.wearable.DataItem {
+                    override fun getUri() = request.uri
+                    override fun getData() = request.data
+                    override fun setData(data: ByteArray?): com.google.android.gms.wearable.DataItem = error("read only")
+                    override fun getAssets() = emptyMap<String, com.google.android.gms.wearable.DataItemAsset>()
+                    override fun freeze(): com.google.android.gms.wearable.DataItem = this
+                    override fun isDataValid() = true
+                }
+                val incoming = ActivitySyncDataItem.read(dataItem) { error("inline payload") }
+                assertArrayEquals(encoded, incoming.payload)
+                val done = CountDownLatch(1)
+                var failure: Throwable? = null
+                instrumentation.runOnMainSync {
+                    ActivitySyncIngestion(
+                        { r, success, rejected ->
+                            imports++
+                            if (imports == 1) rejected(IllegalStateException("transient importer failure"))
+                            else ActivityRepository(ActivityDao()).importSynced(r, success, rejected)
+                        },
+                        { id, version ->
+                            // Same asynchronous Task failure shape as a failed DataClient put.
+                            ackPuts++
+                            val put = activityAckRequest(id, version)
+                            val result = if (ackPuts == 1) com.google.android.gms.tasks.Tasks.forException<Unit>(IllegalStateException("ACK put failed"))
+                                else com.google.android.gms.tasks.Tasks.forResult(Unit)
+                            result.addOnSuccessListener { storedAck = put; done.countDown() }
+                                .addOnFailureListener { failure = it; done.countDown() }
+                        },
+                        { failure = it; done.countDown() },
+                    ).receive(incoming.path, incoming.activityId, incoming.schemaVersion, incoming.payload)
+                }
+                assertTrue(done.await(10, TimeUnit.SECONDS))
+                assertEquals(attempt < 2, failure != null)
+                assertEquals(attempt == 2, storedAck != null)
+                Realm.getInstance(config).use { realm ->
+                    assertEquals(if (attempt == 0) 0L else 1L, realm.where(ActivityEntity::class.java).count())
+                }
+            }
+            assertFalse(envelopes[0].contentEquals(envelopes[1]))
+            assertFalse(envelopes[1].contentEquals(envelopes[2]))
+            assertEquals(3, imports)
+            assertEquals(2, ackPuts)
+            assertEquals("/activity-acks/${record().activityId}", storedAck!!.uri.path)
+            Realm.getInstance(config).use { realm ->
+                val activity = realm.where(ActivityEntity::class.java).findAll().single()
+                assertEquals(record().activityId, activity.id)
+                assertEquals(record().name, activity.name)
+                assertEquals(listOf(4000L, 3000L), activity.chronometer!!.laps.map { it.runningTime })
+                assertEquals(1L, realm.where(ChronometerEntity::class.java).count())
+                assertEquals(2L, realm.where(LapEntity::class.java).count())
+            }
+        }
+    }
+
     private fun withIsolatedRealm(test: (RealmConfiguration) -> Unit) {
         Realm.init(instrumentation.targetContext)
         val previous = Realm.getDefaultConfiguration()!!

@@ -11,6 +11,7 @@ fun TimerScreen(
     onStart: () -> Unit, onLap: () -> Unit, onPause: () -> Unit,
     onResume: () -> Unit, onStop: () -> Unit,
     onHistory: () -> Unit, onSettings: () -> Unit,
+    onFinishAtCheckpoint: () -> Unit, onDiscard: () -> Unit,
 ) {
     val snapshot = state.snapshot ?: return
     WearList {
@@ -33,6 +34,11 @@ fun TimerScreen(
             WatchSessionState.PAUSED -> {
                 item { WearAction(stringResource(R.string.action_resume), !state.busy, onResume) }
                 item { WearAction(stringResource(R.string.action_stop), !state.busy, onStop) }
+            }
+            WatchSessionState.RECOVERY_REQUIRED -> {
+                item { WearAction(stringResource(R.string.action_finish_checkpoint), !state.busy, onFinishAtCheckpoint) }
+                item { WearAction(stringResource(R.string.action_discard), !state.busy, onDiscard) }
+                item { WearText(stringResource(R.string.reboot_recovery)) }
             }
             else -> Unit
         }

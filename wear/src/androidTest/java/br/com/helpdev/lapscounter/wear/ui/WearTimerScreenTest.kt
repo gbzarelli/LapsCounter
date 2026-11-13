@@ -46,6 +46,7 @@ class WearTimerScreenTest {
     }
     private val store = ViewModelStore()
     private var now = 1_000L
+    private val clockReads = java.util.concurrent.atomic.AtomicInteger()
 
     @Before fun setUp() {
         compose.activityRule.scenario.onActivity {
@@ -54,7 +55,7 @@ class WearTimerScreenTest {
         database = Room.inMemoryDatabaseBuilder(context, WatchDatabase::class.java).build()
         repository = WatchActivityRepository(database)
         testStore = FailingHistoryStore(repository)
-        model = WearViewModel(testStore, context.resources, ElapsedRealtimeClock { now }, { 1_735_732_800_000L })
+        model = WearViewModel(testStore, context.resources, ElapsedRealtimeClock { clockReads.incrementAndGet(); now }, { 1_735_732_800_000L })
         store.put("wear", model)
         compose.setContent { MaterialTheme { WearApp(model) } }
         compose.waitUntil(10_000) { model.state.value.ready }
@@ -218,6 +219,46 @@ class WearTimerScreenTest {
         compose.waitUntil(10_000) { model.state.value.historyError }
         action(R.string.history_read_error).assertIsDisplayed()
         assertTrue(model.state.value.ready)
+    }
+
+    @Test fun displayTicksRunOnlyWhileRunningTimerIsVisible() {
+        compose.waitForIdle()
+        val idleReads = clockReads.get()
+        Thread.sleep(700)
+        assertEquals("Idle timer must not poll", idleReads, clockReads.get())
+        click(R.string.action_start)
+        val runningReads = clockReads.get()
+        compose.waitUntil(2_000) { clockReads.get() > runningReads }
+        compose.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.CREATED)
+        Thread.sleep(300)
+        val backgroundReads = clockReads.get()
+        Thread.sleep(700)
+        assertEquals("Background timer must not poll", backgroundReads, clockReads.get())
+        compose.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
+        compose.waitUntil(2_000) { clockReads.get() > backgroundReads }
+    }
+
+    @Test fun backgroundRunningSessionPersistsPeriodicCheckpointWithoutDisplayTicks() {
+        click(R.string.action_start)
+        compose.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.CREATED)
+        now = 8_000L
+        val deadline = android.os.SystemClock.elapsedRealtime() + 35_000
+        var checkpoint = runBlocking { repository.loadActive()!! }
+        while (checkpoint.elapsedMillis != 7_000L && android.os.SystemClock.elapsedRealtime() < deadline) {
+            Thread.sleep(100)
+            checkpoint = runBlocking { repository.loadActive()!! }
+        }
+        assertEquals(7_000L, checkpoint.elapsedMillis)
+        assertEquals(8_000L, checkpoint.checkpointRealtimeMillis)
+        assertEquals(br.com.helpdev.lapscounter.wear.timer.WatchSessionState.RUNNING, checkpoint.state)
+        compose.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
+    }
+
+    @Test fun finalLapSettingExposesCheckedState() {
+        click(R.string.settings_title)
+        reveal(context.getString(R.string.count_final_lap)).assertIsToggleable().assertIsOn().performClick()
+        action(R.string.count_final_lap).assertIsOff()
+        screenshot("final-lap-toggle")
     }
 
     @Test fun settingsPersistDistanceAndFinalLapChoiceAndApplyToNextSession() {

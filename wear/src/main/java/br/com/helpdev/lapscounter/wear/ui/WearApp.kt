@@ -10,6 +10,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.ScalingLazyListScope
 import androidx.wear.compose.material3.*
@@ -23,13 +24,18 @@ fun WearApp(model: WearViewModel) {
     val navigation = rememberSwipeDismissableNavController()
     SwipeDismissableNavHost(navigation, startDestination = "timer") {
         composable("timer") {
+            LifecycleResumeEffect(model) {
+                model.setTimerVisible(true)
+                onPauseOrDispose { model.setTimerVisible(false) }
+            }
             if (!state.ready) {
                 WearList { item { WearText(stringResource(if (state.error) R.string.storage_error else R.string.loading)) } }
             } else if (state.snapshot?.state == WatchSessionState.STOPPED) {
                 SessionSummaryScreen(state, model::save, model::discard)
             } else {
                 TimerScreen(state, model::start, model::lap, model::pause, model::resume, model::stop,
-                    { navigation.navigate("history") }, { navigation.navigate("settings") })
+                    { navigation.navigate("history") }, { navigation.navigate("settings") },
+                    model::finishAtCheckpoint, model::discard)
             }
         }
         composable("history") {

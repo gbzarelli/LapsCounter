@@ -75,6 +75,8 @@ android {
         }
     }
 
+    sourceSets.androidTest.assets.srcDirs += files('schemas')
+
     buildFeatures {
         compose = true
         buildConfig = true

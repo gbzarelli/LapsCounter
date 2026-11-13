@@ -29,7 +29,15 @@ class WearDetailRestorationTest {
     private val store = ViewModelStore()
     private lateinit var database: WatchDatabase
 
-    @After fun cleanup() { store.clear(); database.close() }
+    @After fun cleanup() { store.clear(); database.close(); context.deleteDatabase("ack-observation.db") }
+
+    private fun screenshot(stage: String) {
+        val directory = java.io.File(context.getExternalFilesDir(null), "final-review-qa").apply { mkdirs() }
+        val name = "${br.com.helpdev.lapscounter.sport.SportProfileProvider.get().sportId}-$stage.png"
+        val bitmap = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
+        java.io.File(directory, name).outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+        bitmap.recycle()
+    }
 
     @Test fun restoredDetailRouteLoadsSelectedRecordIntoNewViewModel() {
         compose.activityRule.scenario.onActivity { it.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
@@ -113,12 +121,12 @@ class WearDetailRestorationTest {
     @Test fun appResumeRefreshesHistoryAndDetailAfterAckReconciliation() {
         database = Room.inMemoryDatabaseBuilder(context, WatchDatabase::class.java).build()
         val repository = WatchActivityRepository(database)
-        val timer = br.com.helpdev.lapscounter.wear.timer.WatchTimerController(ElapsedRealtimeClock { 1000 }, "swimming", 25f)
+        val timer = br.com.helpdev.lapscounter.wear.timer.WatchTimerController(ElapsedRealtimeClock { 1000 }, br.com.helpdev.lapscounter.sport.SportProfileProvider.get().sportId.name.lowercase(java.util.Locale.ROOT), 25f)
         timer.start()
         val snapshot = timer.stop()
         runBlocking { repository.saveCompleted(snapshot, "Saved") }
         val model = WearViewModel(repository, context.resources,
-            retrySync = { repository.markSynced(snapshot.id, "swimming") })
+            retrySync = { repository.markSynced(snapshot.id, snapshot.flavorId) })
         store.put("resume-sync", model)
         compose.setContent { MaterialTheme { WearApp(model) } }
         compose.waitUntil(10_000) { model.state.value.ready }
@@ -133,6 +141,91 @@ class WearDetailRestorationTest {
             model.state.value.history.single().activity.syncStatus == WatchSyncStatus.SYNCED &&
                 model.state.value.detail?.activity?.syncStatus == WatchSyncStatus.SYNCED
         }
+    }
+
+    @Test fun openDetailObservesAckWhileResumeTransportIsStillBlocked() {
+        context.deleteDatabase("ack-observation.db")
+        database = Room.databaseBuilder(context, WatchDatabase::class.java, "ack-observation.db")
+            .enableMultiInstanceInvalidation().build()
+        val repository = WatchActivityRepository(database)
+        val timer = br.com.helpdev.lapscounter.wear.timer.WatchTimerController(ElapsedRealtimeClock { 1000 }, br.com.helpdev.lapscounter.sport.SportProfileProvider.get().sportId.name.lowercase(java.util.Locale.ROOT), 25f)
+        timer.start()
+        val snapshot = timer.stop()
+        runBlocking { repository.saveCompleted(snapshot, "Saved") }
+        val sending = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val release = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val model = WearViewModel(repository, context.resources, retrySync = { sending.complete(Unit); release.await() })
+        store.put("blocked-sync", model)
+        compose.setContent { MaterialTheme { WearApp(model) } }
+        compose.waitUntil(10_000) { model.state.value.ready }
+        compose.runOnIdle { model.loadHistory(); model.loadActivity(snapshot.id); model.onAppResumed() }
+        compose.waitUntil(10_000) { sending.isCompleted && model.state.value.detail != null }
+        val serviceDatabase = Room.databaseBuilder(context, WatchDatabase::class.java, "ack-observation.db")
+            .enableMultiInstanceInvalidation().build()
+        try {
+            runBlocking { WatchActivityRepository(serviceDatabase).markSynced(snapshot.id, snapshot.flavorId) }
+            compose.waitUntil(5_000) {
+                model.state.value.detail?.activity?.syncStatus == WatchSyncStatus.SYNCED &&
+                    model.state.value.history.single().activity.syncStatus == WatchSyncStatus.SYNCED
+            }
+        } finally { release.complete(Unit); serviceDatabase.close() }
+    }
+
+    @Test fun rebootRecoveryRequiresFinishAtCheckpointOrDiscardAndPreservesSavedTime() {
+        database = Room.inMemoryDatabaseBuilder(context, WatchDatabase::class.java).build()
+        val repository = WatchActivityRepository(database)
+        var now = 100_000L
+        val clock = ElapsedRealtimeClock { now }
+        val timer = br.com.helpdev.lapscounter.wear.timer.WatchTimerController(clock, br.com.helpdev.lapscounter.sport.SportProfileProvider.get().sportId.name.lowercase(java.util.Locale.ROOT), 25f)
+        timer.start()
+        now = 104_000
+        timer.recordLap()
+        now = 105_000
+        runBlocking { repository.persistActive(timer.pause()) }
+        now = 1_000
+        val model = WearViewModel(repository, context.resources, clock)
+        store.put("reboot", model)
+        compose.setContent { MaterialTheme { WearApp(model) } }
+        compose.waitUntil(10_000) { model.state.value.ready }
+        compose.onNodeWithText(context.getString(R.string.action_resume)).assertDoesNotExist()
+        compose.waitForIdle()
+        screenshot("recovery-actions")
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(context.getString(R.string.reboot_recovery)))
+        screenshot("recovery-explanation")
+        val finish = context.getString(R.string.action_finish_checkpoint)
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(finish))
+        compose.onNodeWithText(finish).performClick()
+        compose.waitUntil(10_000) { model.state.value.snapshot?.state == br.com.helpdev.lapscounter.wear.timer.WatchSessionState.STOPPED }
+        val save = context.getString(R.string.action_save)
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(save))
+        compose.onNodeWithText(save).performClick()
+        compose.waitUntil(10_000) { model.state.value.snapshot?.state == br.com.helpdev.lapscounter.wear.timer.WatchSessionState.IDLE }
+        val record = runBlocking { repository.history().single() }
+        assertEquals(5_000L, record.activity.elapsedMillis)
+        assertEquals(listOf(4_000L, 1_000L), record.laps.map { it.durationMillis })
+    }
+
+    @Test fun rebootRecoveryDiscardClearsActiveSessionWithoutSaving() {
+        database = Room.inMemoryDatabaseBuilder(context, WatchDatabase::class.java).build()
+        val repository = WatchActivityRepository(database)
+        var now = 100_000L
+        val clock = ElapsedRealtimeClock { now }
+        val flavor = br.com.helpdev.lapscounter.sport.SportProfileProvider.get().sportId.name.lowercase(java.util.Locale.ROOT)
+        val timer = br.com.helpdev.lapscounter.wear.timer.WatchTimerController(clock, flavor, 25f)
+        timer.start()
+        now = 105_000
+        runBlocking { repository.persistActive(timer.pause()) }
+        now = 1_000
+        val model = WearViewModel(repository, context.resources, clock)
+        store.put("reboot-discard", model)
+        compose.setContent { MaterialTheme { WearApp(model) } }
+        compose.waitUntil(10_000) { model.state.value.ready }
+        val discard = context.getString(R.string.action_discard)
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(discard))
+        compose.onNodeWithText(discard).performClick()
+        compose.waitUntil(10_000) { model.state.value.snapshot?.state == br.com.helpdev.lapscounter.wear.timer.WatchSessionState.IDLE }
+        assertEquals(null, runBlocking { repository.loadActive() })
+        assertEquals(emptyList<br.com.helpdev.lapscounter.wear.data.WatchActivityRecord>(), runBlocking { repository.history() })
     }
 
 }

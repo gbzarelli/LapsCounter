@@ -9,9 +9,7 @@ import br.com.helpdev.lapscounter.wear.data.*
 import br.com.helpdev.lapscounter.wear.timer.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -31,6 +29,7 @@ class WearViewModel(
     val profile = SportProfileProvider.get()
     val flavorId = profile.sportId.name.lowercase(Locale.ROOT)
     private val mutex = Mutex()
+    private val timerVisible = MutableStateFlow(false)
     private var controller: WatchTimerController? = null
     private var detailRequest = 0
     private var historyRequest = 0
@@ -49,11 +48,40 @@ class WearViewModel(
                 )
                 display()
             }
-            while (true) {
-                delay(200)
-                mutex.withLock { if (state.value.ready) display() }
-            }
         }
+        viewModelScope.launch {
+            combine(timerVisible, state) { visible, ui -> visible && ui.snapshot?.state == WatchSessionState.RUNNING }
+                .distinctUntilChanged().collectLatest { runningVisible ->
+                    if (runningVisible) while (true) {
+                        delay(200)
+                        mutex.withLock { display() }
+                    }
+                }
+        }
+        viewModelScope.launch {
+            state.map { it.snapshot?.state in setOf(WatchSessionState.RUNNING, WatchSessionState.PAUSED) }
+                .distinctUntilChanged().collectLatest { active ->
+                    // Attempt a durable recovery boundary independently of display ticks,
+                    // including while backgrounded. Only successful writes preserve time.
+                    if (active) while (true) { delay(30_000); checkpoint() }
+                }
+        }
+        viewModelScope.launch {
+            repository.observeChanges().collect { refreshLocalRecords() }
+        }
+    }
+
+    fun setTimerVisible(visible: Boolean) {
+        timerVisible.value = visible
+        if (!visible) viewModelScope.launch { checkpoint() }
+    }
+
+    private suspend fun checkpoint() = mutex.withLock {
+        val snapshot = controller?.snapshot() ?: return@withLock
+        if (snapshot.state !in setOf(WatchSessionState.RUNNING, WatchSessionState.PAUSED)) return@withLock
+        try { repository.persistActive(snapshot) }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (_: Exception) { mutableState.value = state.value.copy(error = true) }
     }
 
     private fun timer(settings: WearSettingsEntity, restored: WatchSessionSnapshot? = null) = WatchTimerController(
@@ -94,6 +122,7 @@ class WearViewModel(
     fun lap() = transition(setOf(WatchSessionState.RUNNING)) { recordLap() }
     fun pause() = transition(setOf(WatchSessionState.RUNNING)) { pause() }
     fun resume() = transition(setOf(WatchSessionState.PAUSED)) { resume() }
+    fun finishAtCheckpoint() = transition(setOf(WatchSessionState.RECOVERY_REQUIRED)) { finishAtCheckpoint() }
     fun stop() = transition(setOf(WatchSessionState.RUNNING, WatchSessionState.PAUSED)) { stop() }
 
     fun discard() {
@@ -101,7 +130,7 @@ class WearViewModel(
             operation {
                 val current = controller ?: return@operation
                 val previous = current.snapshot()
-                if (previous.state != WatchSessionState.STOPPED) return@operation
+                if (previous.state !in setOf(WatchSessionState.STOPPED, WatchSessionState.RECOVERY_REQUIRED)) return@operation
                 try {
                     repository.persistActive(current.discard())
                 } catch (error: Exception) {
@@ -126,7 +155,13 @@ class WearViewModel(
     }
 
     fun onAppResumed() {
+        refreshLocalRecords()
         requestSync()
+    }
+
+    private fun refreshLocalRecords() {
+        if (state.value.history.isNotEmpty()) loadHistory()
+        state.value.detailId?.let(::loadActivity)
     }
 
     private fun requestSync() {
@@ -134,9 +169,7 @@ class WearViewModel(
             try { retrySync() } catch (cancelled: CancellationException) { throw cancelled } catch (_: Exception) {
                 // The durable pending rows are retried on connection or the next resume.
             }
-            // Reconciliation can mark rows synced; read after it completes, not before.
-            if (state.value.history.isNotEmpty()) loadHistory()
-            state.value.detailId?.let(::loadActivity)
+            refreshLocalRecords()
         }
     }
 

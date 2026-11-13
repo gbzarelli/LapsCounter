@@ -15,17 +15,72 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class DataLayerActivitySyncTransportTest {
+    @Test fun retriesAndRecreatedTransportsPublishChangedEnvelopeWithIdenticalActivity() = runBlocking {
+        val record = ActivitySyncRecord(1, "swimming", "123e4567-e89b-12d3-a456-426614174000", "Swim", null, 1, 25f, 25f, true, 100, 0, emptyList())
+        val requests = mutableListOf<PutDataRequest>()
+        val client = DataClientAdapter { requests.add(it) }
+        val first = DataLayerActivitySyncTransport(client)
+        first.send(record)
+        first.send(record)
+        DataLayerActivitySyncTransport(client).send(record)
+        assertFalse("Retry must create DATA_CHANGED after an import or ACK failure", requests[0].data!!.contentEquals(requests[1].data!!))
+        assertFalse("A process/coordinator restart must still create a change", requests[1].data!!.contentEquals(requests[2].data!!))
+        requests.forEach {
+            assertEquals("/activities/${record.activityId}", it.uri.path)
+            val map = DataMap.fromByteArray(it.data!!)
+            assertEquals(record, ActivitySyncCodec.decode(map.getByteArray("payload")!!))
+        }
+    }
+
+    @Test fun coordinatorReplaysChangedEnvelopeUntilCommittedAckAndRetainsHistory() = runBlocking {
+        val context: android.content.Context = androidx.test.core.app.ApplicationProvider.getApplicationContext()
+        val database = androidx.room.Room.inMemoryDatabaseBuilder(context,
+            br.com.helpdev.lapscounter.wear.data.WatchDatabase::class.java).build()
+        try {
+            val repository = br.com.helpdev.lapscounter.wear.data.WatchActivityRepository(database)
+            val timer = br.com.helpdev.lapscounter.wear.timer.WatchTimerController(
+                br.com.helpdev.lapscounter.wear.timer.ElapsedRealtimeClock { 1000 }, "swimming", 25f)
+            timer.start()
+            val snapshot = timer.stop()
+            repository.saveCompleted(snapshot, "Saved")
+            val requests = mutableListOf<PutDataRequest>()
+            var acks = emptyList<ActivityAcknowledgement>()
+            fun coordinator() = ActivitySyncCoordinator(
+                ActivitySyncOutbox(repository, DataLayerActivitySyncTransport(DataClientAdapter { requests += it }), "swimming"),
+                ActivityAckSource { acks })
+            coordinator().recover()
+            // Successful transport does not mean importer/ACK committed. Recreated
+            // coordinators retry the SAME durable row and change its delivery envelope.
+            coordinator().recover()
+            assertEquals(2, requests.size)
+            assertFalse(requests[0].data!!.contentEquals(requests[1].data!!))
+            assertArrayEquals(DataMap.fromByteArray(requests[0].data!!).getByteArray("payload"),
+                DataMap.fromByteArray(requests[1].data!!).getByteArray("payload"))
+            assertEquals(br.com.helpdev.lapscounter.wear.data.WatchSyncStatus.PENDING,
+                repository.activity(snapshot.id)!!.activity.syncStatus)
+            acks = listOf(ActivityAcknowledgement("/activity-acks/${snapshot.id}", snapshot.id, 1))
+            coordinator().recover()
+            assertEquals(2, requests.size)
+            val retained = repository.history().single()
+            assertEquals(snapshot.id, retained.activity.id)
+            assertEquals("Saved", retained.activity.name)
+            assertEquals(snapshot.laps.map { it.durationMillis }, retained.laps.map { it.durationMillis })
+            assertEquals(br.com.helpdev.lapscounter.wear.data.WatchSyncStatus.SYNCED, retained.activity.syncStatus)
+        } finally { database.close() }
+    }
+
     @Test fun choosesInlineThroughLimitAndAssetAboveIt() = runBlocking {
         val id = "123e4567-e89b-12d3-a456-426614174000"
         val base = ActivitySyncRecord(1, "swimming", id, "Swim", null, 1, 25f, 25f, true, 100, 0, emptyList())
         var request: PutDataRequest? = null
         val transport = DataLayerActivitySyncTransport(DataClientAdapter { request = it })
         transport.send(base)
-        val small = DataMap.fromByteArray(requireNotNull(request!!.data))
+        val firstRequest = requireNotNull(request)
+        val small = DataMap.fromByteArray(requireNotNull(firstRequest.data))
         assertEquals(id, small.getString("activityId"))
         assertEquals(1, small.getInt("schemaVersion"))
         assertEquals(base, ActivitySyncCodec.decode(requireNotNull(small.getByteArray("payload"))))
-        assertTrue(request!!.assets.isEmpty())
+        assertTrue(firstRequest.assets.isEmpty())
         val overhead = ActivitySyncCodec.encode(base.copy(description = "")).size
         val exact = base.copy(description = "a".repeat(65536), laps = List((90 * 1024 - overhead - 65536) / 21) { ActivitySyncLap(it + 1, 0, 0, false) })
         // Fill remaining bytes with the name (whose original length is four bytes).
