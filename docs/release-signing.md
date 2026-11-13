@@ -73,6 +73,8 @@ Use each existing same-name sport listing; do not create a second listing or upl
 
 Supply at least one real Wear OS screenshot per listing as required by Play, showing the current watch app. Prepare localized English, Portuguese and Spanish timer and history/detail captures; verify small and large round layouts, readable splits/metrics/status, and reachable primary actions. Phone screenshots do not replace Wear screenshots. Recheck the Console's current screenshot requirements before submission.
 
+Physical Wear OS hardware QA is waived for this first release because no physical watch is available; the small- and large-round emulator matrix is the device QA evidence. This waiver does not replace the live paired phone/watch sync check below.
+
 Before any separately authorized upload, complete paired Android/watch testing for each sport: save offline without the phone, reconnect/install the matching signed phone package, confirm identical UUID and lap values in phone history, retry to confirm a single activity, observe the committed-import ACK, and reopen the retained watch copy. Local transport/Room/Realm tests do not replace this live test. Review the Wear quality checklist and store declarations. Local bundle generation does not authorize upload, submission, rollout, or publication.
 
 ### Reproducible live sync fixture
