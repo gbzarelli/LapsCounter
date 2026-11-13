@@ -5,7 +5,7 @@ import br.com.helpdev.lapscounter.wear.data.WatchActivityRepository
 import br.com.helpdev.lapscounter.wear.data.WatchDatabase
 import com.google.android.gms.wearable.DataEvent
 import com.google.android.gms.wearable.DataEventBuffer
-import com.google.android.gms.wearable.Node
+import com.google.android.gms.wearable.CapabilityInfo
 import com.google.android.gms.wearable.WearableListenerService
 import kotlinx.coroutines.runBlocking
 
@@ -20,12 +20,11 @@ open class ActivityAckListenerService : WearableListenerService() {
         }
     }
 
-    override fun onPeerConnected(peer: Node) {
-        runSync { it.recover() }
-    }
-
-    override fun onConnectedNodes(connectedNodes: MutableList<Node>) {
-        if (connectedNodes.isNotEmpty()) runSync { it.recover() }
+    override fun onCapabilityChanged(capabilityInfo: CapabilityInfo) {
+        // Advertised by the phone's android_wear_capabilities resource, including after reconnect.
+        if (capabilityInfo.name == "lapscounter_phone" && capabilityInfo.nodes.isNotEmpty()) {
+            runSync { it.recover() }
+        }
     }
 
     /** WearableListenerService dispatches callbacks on its background handler thread. */

@@ -1,6 +1,8 @@
 package br.com.helpdev.lapscounter.wear.sync
 
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -15,6 +17,8 @@ import com.google.android.gms.tasks.Tasks
 import com.google.android.gms.wearable.DataItem
 import com.google.android.gms.wearable.DataItemAsset
 import com.google.android.gms.wearable.PutDataMapRequest
+import com.google.android.gms.wearable.CapabilityClient
+import com.google.android.gms.wearable.CapabilityInfo
 import com.google.android.gms.wearable.DataClient
 import com.google.android.gms.wearable.DataItemBuffer
 import com.google.android.gms.wearable.Node
@@ -31,7 +35,28 @@ class ActivitySyncRecoveryTest {
         override fun isNearby() = true
     }
 
-    @Test fun connectionCallbacksRecoverFailedUploadAndPersistPreviouslyDeliveredAck() = runBlocking {
+    private fun capability(name: String = "lapscounter_phone", nodes: Set<Node> = setOf(peer)) = object : CapabilityInfo {
+        override fun getName() = name
+        override fun getNodes() = nodes
+    }
+
+    @Test fun installedManifestRoutesOnlyPhoneCapabilityAndAckEvents() {
+        val context: Context = ApplicationProvider.getApplicationContext()
+        fun matches(action: String, path: String): Boolean {
+            val intent = Intent(action, Uri.parse("wear://*/$path")).setPackage(context.packageName)
+            return context.packageManager.queryIntentServices(intent, PackageManager.MATCH_ALL).any {
+                it.serviceInfo.name == ActivityAckListenerService::class.java.name && it.serviceInfo.exported
+            }
+        }
+        assertTrue(matches(CapabilityClient.ACTION_CAPABILITY_CHANGED, "lapscounter_phone"))
+        assertFalse(matches(CapabilityClient.ACTION_CAPABILITY_CHANGED, "other_capability"))
+        assertFalse(matches(CapabilityClient.ACTION_CAPABILITY_CHANGED, "lapscounter_phone/extra"))
+        assertTrue(matches(DataClient.ACTION_DATA_CHANGED, "activity-acks/123e4567-e89b-12d3-a456-426614174000"))
+        assertFalse(matches(DataClient.ACTION_DATA_CHANGED, "lapscounter_phone"))
+        assertFalse(matches(CapabilityClient.ACTION_CAPABILITY_CHANGED, "activity-acks/123e4567-e89b-12d3-a456-426614174000"))
+    }
+
+    @Test fun advertisedPhoneCapabilityRecoversFailedUploadAndPersistedAck() = runBlocking {
         val context: Context = ApplicationProvider.getApplicationContext()
         val database = Room.inMemoryDatabaseBuilder(context, WatchDatabase::class.java).build()
         try {
@@ -70,8 +95,11 @@ class ActivitySyncRecoveryTest {
             coordinator.recover()
             assertEquals(listOf(snapshot.id), sent)
             failPut = false
-            // The real background callback, with no Save or Activity resume in between.
-            service.onPeerConnected(peer)
+            service.onCapabilityChanged(capability("unrelated"))
+            service.onCapabilityChanged(capability(nodes = emptySet()))
+            assertEquals(listOf(snapshot.id), sent)
+            // The registered background event, with no Save or Activity resume in between.
+            service.onCapabilityChanged(capability())
             assertEquals(listOf(snapshot.id, snapshot.id), sent)
             assertEquals(WatchSyncStatus.PENDING, repository.activity(snapshot.id)!!.activity.syncStatus)
 
@@ -80,7 +108,7 @@ class ActivitySyncRecoveryTest {
             coordinator.receive(ack)
             assertEquals("transient Room failure", failures.single().message)
             assertEquals(WatchSyncStatus.PENDING, repository.activity(snapshot.id)!!.activity.syncStatus)
-            service.onConnectedNodes(mutableListOf(peer))
+            service.onCapabilityChanged(capability())
             assertEquals(WatchSyncStatus.SYNCED, repository.activity(snapshot.id)!!.activity.syncStatus)
             assertEquals(2, sent.size)
             assertEquals(1, repository.history().size)
