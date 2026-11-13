@@ -36,6 +36,7 @@ class ActivitySyncRealmIntegrationTest {
                         { id, version ->
                             Realm.getInstance(config).use { realm ->
                                 assertEquals(1L, realm.where(ActivityEntity::class.java).count())
+                                assertEquals(record().activityId, realm.where(ActivityEntity::class.java).findFirst()!!.id)
                                 assertEquals(listOf(4_000L, 3_000L), realm.where(ActivityEntity::class.java).findFirst()!!.chronometer!!.laps.map { it.runningTime })
                             }
                             assertEquals(1, version)
@@ -82,6 +83,46 @@ class ActivitySyncRealmIntegrationTest {
         }
     }
 
+    // Run this same matrix under each connected<Flavor>DebugAndroidTest task.
+    // A missing flavor rejection or UUID deduplication must fail against real Realm rows.
+    @Test fun allSportPayloadsReachOnlyMatchingFlavorHistoryOnce() {
+        withIsolatedRealm { config ->
+            val matching = record().sportId
+            for ((index, sport) in listOf("swimming", "running", "cycling").withIndex()) {
+                val payload = record().copy(sportId = sport,
+                    activityId = "123e4567-e89b-12d3-a456-42661417400$index")
+                repeat(2) {
+                    val done = CountDownLatch(1)
+                    var acknowledged = false
+                    var rejected = false
+                    instrumentation.runOnMainSync {
+                        ActivitySyncIngestion(
+                            { r, success, failure -> ActivityRepository(ActivityDao()).importSynced(r, success, failure) },
+                            { id, version ->
+                                assertEquals(payload.activityId, id)
+                                assertEquals(1, version)
+                                acknowledged = true
+                                done.countDown()
+                            },
+                            { rejected = true; done.countDown() }
+                        ).receive("/activities/${payload.activityId}", payload.activityId, 1, ActivitySyncCodec.encode(payload))
+                    }
+                    assertTrue(done.await(10, TimeUnit.SECONDS))
+                    assertEquals(sport == matching, acknowledged)
+                    assertEquals(sport != matching, rejected)
+                }
+            }
+            Realm.getInstance(config).use { realm ->
+                val activity = realm.where(ActivityEntity::class.java).findAll().single()
+                val expectedId = "123e4567-e89b-12d3-a456-42661417400${listOf("swimming", "running", "cycling").indexOf(matching)}"
+                assertEquals(expectedId, activity.id)
+                assertEquals(listOf(4_000L, 3_000L), activity.chronometer!!.laps.map { it.runningTime })
+                assertEquals(1L, realm.where(ChronometerEntity::class.java).count())
+                assertEquals(2L, realm.where(LapEntity::class.java).count())
+            }
+        }
+    }
+
     @Test fun realmTransactionSetupFailureNeverAcknowledges() {
         withIsolatedRealm { config ->
             var acknowledgements = 0
@@ -106,6 +147,14 @@ class ActivitySyncRealmIntegrationTest {
         Realm.setDefaultConfiguration(config)
         try { test(config) } finally {
             Realm.setDefaultConfiguration(previous)
+            // The ACK releases the test thread while Realm's async completion can still
+            // be unwinding on the main/worker threads. Do not race file deletion with it.
+            instrumentation.waitForIdleSync()
+            val deadline = android.os.SystemClock.elapsedRealtime() + 5_000
+            while (Realm.getGlobalInstanceCount(config) != 0 && android.os.SystemClock.elapsedRealtime() < deadline) {
+                android.os.SystemClock.sleep(10)
+            }
+            assertEquals("Isolated Realm instances must be closed before cleanup", 0, Realm.getGlobalInstanceCount(config))
             Realm.deleteRealm(config)
         }
     }

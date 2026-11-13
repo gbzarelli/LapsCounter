@@ -20,6 +20,9 @@ import org.junit.*
 import org.junit.Assert.*
 import org.junit.runner.RunWith
 import java.util.Locale
+import java.io.File
+import android.graphics.Bitmap
+import androidx.test.platform.app.InstrumentationRegistry
 
 @RunWith(AndroidJUnit4::class)
 class WearTimerScreenTest {
@@ -84,6 +87,14 @@ class WearTimerScreenTest {
         compose.waitUntil(10_000) { model.state.value.snapshot?.state == state && !model.state.value.busy }
     }
 
+    private fun screenshot(stage: String) {
+        val directory = File(context.getExternalFilesDir(null), "task7-qa").apply { mkdirs() }
+        val name = "${SportProfileProvider.get().sportId}-${Locale.getDefault().toLanguageTag()}-$stage.png"
+        val bitmap = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
+        File(directory, name).outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        bitmap.recycle()
+    }
+
     @Test fun timerActionsFollowStateAndSummarySavesGeneratedNameAndSplits() {
         action(R.string.action_start).assertIsDisplayed()
         action(R.string.action_pause).assertDoesNotExist()
@@ -92,6 +103,7 @@ class WearTimerScreenTest {
         waitForState(br.com.helpdev.lapscounter.wear.timer.WatchSessionState.RUNNING)
         assertFullyInViewport(R.string.action_lap)
         assertFullyInViewport(R.string.action_pause)
+        screenshot("running")
         assertAction(R.string.action_lap)
         assertAction(R.string.action_pause)
         action(R.string.action_start).assertDoesNotExist()
@@ -110,6 +122,9 @@ class WearTimerScreenTest {
         waitForState(br.com.helpdev.lapscounter.wear.timer.WatchSessionState.STOPPED)
         assertAction(R.string.action_save)
         assertAction(R.string.action_discard)
+        screenshot("summary")
+        reveal(model.state.value.metrics!!.metric).assertIsDisplayed()
+        screenshot("summary-metric")
         val displayedName = model.state.value.generatedName
         click(R.string.action_save)
         val record = runBlocking { repository.history().single() }
@@ -122,7 +137,12 @@ class WearTimerScreenTest {
         click(R.string.history_title)
         compose.waitUntil(10_000) { model.state.value.history.size == 1 }
         reveal(record.activity.name).performClick()
+        reveal(context.getString(R.string.sync_pending)).assertIsDisplayed()
+        screenshot("detail-status")
         reveal(context.getString(R.string.lap_number, 1)).assertIsDisplayed()
+        screenshot("detail")
+        reveal(context.getString(R.string.final_lap)).assertIsDisplayed()
+        screenshot("detail-laps")
     }
 
     @Test fun stoppedMetricUsesActiveSportProfileAndDiscardLeavesNoHistory() {

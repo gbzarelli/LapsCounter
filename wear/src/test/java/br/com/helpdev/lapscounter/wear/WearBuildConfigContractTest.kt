@@ -21,6 +21,6 @@ class WearBuildConfigContractTest {
 
     @Test
     fun versionCodeUsesWearFormFactorOffset() {
-        assertEquals(1_000_012, BuildConfig.VERSION_CODE)
+        assertEquals(1_000_013, BuildConfig.VERSION_CODE)
     }
 }
