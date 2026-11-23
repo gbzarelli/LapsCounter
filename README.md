@@ -29,7 +29,7 @@ ANDROID_SERIAL=<phone-serial> sh gradlew :lapsCounter:connectedSwimmingDebugAndr
 
 Use Java 17+ and the Android SDK configured in `gradle/libs.versions.toml`; Wear requires API 30+, phone API 24+. `sportCore` holds shared sport rules and the versioned sync contract. Instrumentation covers real local Room/Realm persistence and import idempotency; it is not proof of live paired delivery. Before release, pair corresponding sport apps and test an offline save → reconnection → phone UUID/laps → ACK → retained watch history. Check timer, summary, settings, history/detail, metrics and sync status on small/large round watches in English, Portuguese and Spanish.
 
-Phone version codes use `appVersionCode`; Wear uses `1_000_000 + appVersionCode`, with a shared `appVersionName`. Current values are phone `14`, Wear `1000014`, name `2.2.5`. Recheck every listing's version history before release. Wear belongs to the existing same-name sport Play listing and its dedicated Wear OS form-factor closed testing track; see the release guide for signing, screenshots and local bundle commands.
+Phone version codes use `appVersionCode`; Wear uses `1_000_000 + appVersionCode`, with a shared `appVersionName`. Current values are phone `15`, Wear `1000015`, name `2.2.6`. Recheck every listing's version history before release. Wear belongs to the existing same-name sport Play listing and its dedicated Wear OS form-factor closed testing track; see the release guide for signing, screenshots and local bundle commands.
 
 See [third-party notices](THIRD_PARTY_NOTICES.md) for in-app icon attribution.
 
