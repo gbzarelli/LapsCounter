@@ -17,11 +17,18 @@ fun TimerScreen(
     onResume: () -> Unit, onStop: () -> Unit,
     onHistory: () -> Unit, onSettings: () -> Unit,
     onFinishAtCheckpoint: () -> Unit, onDiscard: () -> Unit,
+    onNotificationSettings: () -> Unit = {},
 ) {
     val snapshot = state.snapshot ?: return
     WearList {
         if (snapshot.state == WatchSessionState.IDLE) {
             item { WearText(stringResource(R.string.sport_name)) }
+        }
+        if (state.notificationPermissionRequired) {
+            item { WearNotice(stringResource(R.string.notification_permission_required)) }
+            item {
+                WearAction(stringResource(R.string.open_notification_settings), !state.busy, onNotificationSettings)
+            }
         }
         item {
             AnimatedContent(
@@ -41,7 +48,13 @@ fun TimerScreen(
         }
         when (snapshot.state) {
             WatchSessionState.IDLE -> {
-                item { WearAction(stringResource(R.string.action_start), !state.busy, onStart) }
+                item {
+                    WearAction(
+                        stringResource(R.string.action_start),
+                        !state.busy && !state.notificationPermissionRequired,
+                        onStart,
+                    )
+                }
                 item { WearAction(stringResource(R.string.history_title), !state.busy, onHistory) }
                 item { WearAction(stringResource(R.string.settings_title), !state.busy, onSettings) }
             }

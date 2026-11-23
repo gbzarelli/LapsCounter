@@ -44,7 +44,7 @@ Before release, validate consent, ad loading, privacy policy, Play declarations,
 
 ## Wear OS release gate and local bundles
 
-Phone and Wear share each sport's release package ID and signing configuration. Debug packages append `.debug` on both modules and must share the debug signing certificate for paired testing. Phone codes are `appVersionCode`; Wear codes are `1_000_000 + appVersionCode`; names are shared. Keep `appVersionCode` in 1–999999 and increase it for each release. The current values (`13` / `1000013`, `2.2.4`) are build configuration, not evidence that the next upload is accepted by Play. Inspect each app's entire version history before a release.
+Phone and Wear share each sport's release package ID and signing configuration. Debug packages append `.debug` on both modules and must share the debug signing certificate for paired testing. Phone codes are `appVersionCode`; Wear codes are `1_000_000 + appVersionCode`; names are shared. Keep `appVersionCode` in 1–999999 and increase it for each release. The current values (`14` / `1000014`, `2.2.5`) are build configuration, not evidence that the next upload is accepted by Play. Inspect each app's entire version history before a release.
 
 For **each** Swimming, Running, and Cycling listing:
 

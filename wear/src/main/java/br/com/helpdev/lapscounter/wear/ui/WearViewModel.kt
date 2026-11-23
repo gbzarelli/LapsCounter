@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import br.com.helpdev.lapscounter.sport.*
 import br.com.helpdev.lapscounter.wear.R
 import br.com.helpdev.lapscounter.wear.data.*
+import br.com.helpdev.lapscounter.wear.notifications.WatchActivityIndicator
 import br.com.helpdev.lapscounter.wear.timer.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -26,6 +27,7 @@ class WearViewModel(
     private val wallClock: () -> Long = System::currentTimeMillis,
     private val closeDatabase: () -> Unit = {},
     private val retrySync: suspend () -> Unit = {},
+    private val watchActivityIndicator: WatchActivityIndicator? = null,
 ) : ViewModel() {
     val profile = SportProfileProvider.get()
     val flavorId = profile.sportId.name.lowercase(Locale.ROOT)
@@ -49,6 +51,7 @@ class WearViewModel(
                     ready = true, settings = settings,
                 )
                 display()
+                syncOngoingActivity(requireNotNull(controller).snapshot())
             }
         }
         viewModelScope.launch {
@@ -117,6 +120,7 @@ class WearViewModel(
                     val updated = current.change()
                     repository.persistActive(updated)
                     onPersisted(updated)
+                    syncOngoingActivity(updated)
                 } catch (error: Exception) {
                     controller = timer(requireNotNull(state.value.settings), previous)
                     throw error
@@ -234,6 +238,26 @@ class WearViewModel(
         mutableState.value = state.value.copy(lapFeedback = null)
         controller = timer(requireNotNull(state.value.settings))
         display()
+        syncOngoingActivity(requireNotNull(controller).snapshot())
+    }
+
+    fun setNotificationPermissionRequired(required: Boolean) {
+        if (state.value.notificationPermissionRequired != required) {
+            mutableState.value = state.value.copy(notificationPermissionRequired = required)
+        }
+    }
+
+    private fun syncOngoingActivity(snapshot: WatchSessionSnapshot) {
+        val indicator = watchActivityIndicator ?: return
+        runCatching {
+            if (snapshot.state == WatchSessionState.RUNNING || snapshot.state == WatchSessionState.PAUSED) {
+                indicator.update(snapshot)
+            } else {
+                indicator.cancel()
+            }
+        }.onFailure { error ->
+            if (error is SecurityException) setNotificationPermissionRequired(true)
+        }
     }
 
     private fun showLapFeedback(snapshot: WatchSessionSnapshot) {
@@ -290,4 +314,5 @@ data class WearUiState(
     val detail: WatchActivityRecord? = null,
     val detailError: Boolean = false,
     val syncStatus: WatchSyncStatus = WatchSyncStatus.PENDING,
+    val notificationPermissionRequired: Boolean = false,
 )

@@ -31,4 +31,11 @@
     <string name="activity_read_error">Could not load activity.</string>
     <string name="action_finish_checkpoint">Finish at checkpoint</string>
     <string name="reboot_recovery">After reboot: timing unknown.</string>
+    <string name="scroll_indicator">Scroll position</string>
+    <string name="notification_permission_required">Allow notifications to keep the stopwatch visible while it runs.</string>
+    <string name="open_notification_settings">Notification settings</string>
+    <string name="ongoing_notification_channel">Active stopwatch</string>
+    <string name="ongoing_notification_text">Timer is active</string>
+    <string name="ongoing_accessibility">Active %1$s stopwatch</string>
+    <string name="ongoing_paused">Paused · %1$s</string>
 </resources>

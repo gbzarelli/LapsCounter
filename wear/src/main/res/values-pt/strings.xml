@@ -31,4 +31,11 @@
     <string name="activity_read_error">Não foi possível carregar a atividade.</string>
     <string name="action_finish_checkpoint">Finalizar no registro</string>
     <string name="reboot_recovery">Após reinício: tempo incerto.</string>
+    <string name="scroll_indicator">Posição de rolagem</string>
+    <string name="notification_permission_required">Permita notificações para manter o cronômetro visível enquanto estiver ativo.</string>
+    <string name="open_notification_settings">Configurações de notificações</string>
+    <string name="ongoing_notification_channel">Cronômetro ativo</string>
+    <string name="ongoing_notification_text">Cronômetro em andamento</string>
+    <string name="ongoing_accessibility">Cronômetro de %1$s ativo</string>
+    <string name="ongoing_paused">Pausado · %1$s</string>
 </resources>

@@ -13,6 +13,8 @@ import br.com.helpdev.lapscounter.sport.SportId
 import br.com.helpdev.lapscounter.sport.SportProfileProvider
 import br.com.helpdev.lapscounter.wear.R
 import br.com.helpdev.lapscounter.wear.data.*
+import br.com.helpdev.lapscounter.wear.notifications.WatchActivityIndicator
+import br.com.helpdev.lapscounter.wear.timer.WatchSessionSnapshot
 import br.com.helpdev.lapscounter.wear.timer.ElapsedRealtimeClock
 import kotlinx.coroutines.runBlocking
 import androidx.lifecycle.ViewModelStore
@@ -32,6 +34,13 @@ class WearTimerScreenTest {
     private lateinit var repository: WatchActivityRepository
     private lateinit var model: WearViewModel
     private lateinit var testStore: FailingHistoryStore
+    private val activityIndicator = RecordingActivityIndicator()
+    private class RecordingActivityIndicator : WatchActivityIndicator {
+        val updates = mutableListOf<WatchSessionSnapshot>()
+        var cancelCount = 0
+        override fun update(snapshot: WatchSessionSnapshot) { updates += snapshot }
+        override fun cancel() { cancelCount++ }
+    }
     private class FailingHistoryStore(private val delegate: WatchActivityStore) : WatchActivityStore by delegate {
         var failHistory = false
         var failDetail = false
@@ -55,7 +64,10 @@ class WearTimerScreenTest {
         database = Room.inMemoryDatabaseBuilder(context, WatchDatabase::class.java).build()
         repository = WatchActivityRepository(database)
         testStore = FailingHistoryStore(repository)
-        model = WearViewModel(testStore, context.resources, ElapsedRealtimeClock { clockReads.incrementAndGet(); now }, { 1_735_732_800_000L })
+        model = WearViewModel(
+            testStore, context.resources, ElapsedRealtimeClock { clockReads.incrementAndGet(); now },
+            { 1_735_732_800_000L }, watchActivityIndicator = activityIndicator,
+        )
         store.put("wear", model)
         compose.setContent { MaterialTheme { WearApp(model) } }
         compose.waitUntil(10_000) { model.state.value.ready }
@@ -102,6 +114,7 @@ class WearTimerScreenTest {
         action(R.string.action_start).performClick()
         compose.waitForIdle()
         waitForState(br.com.helpdev.lapscounter.wear.timer.WatchSessionState.RUNNING)
+        compose.onNodeWithContentDescription(context.getString(R.string.scroll_indicator)).assertExists()
         assertFullyInViewport(R.string.action_lap)
         assertFullyInViewport(R.string.action_pause)
         screenshot("running")
@@ -144,6 +157,24 @@ class WearTimerScreenTest {
         screenshot("detail")
         reveal(context.getString(R.string.final_lap)).assertIsDisplayed()
         screenshot("detail-laps")
+    }
+
+    @Test fun ongoingActivityTracksRunningAndPausedTimerAndEndsWhenStopped() {
+        activityIndicator.updates.clear()
+        activityIndicator.cancelCount = 0
+        model.start()
+        waitForState(br.com.helpdev.lapscounter.wear.timer.WatchSessionState.RUNNING)
+        assertEquals(br.com.helpdev.lapscounter.wear.timer.WatchSessionState.RUNNING, activityIndicator.updates.last().state)
+
+        model.pause()
+        waitForState(br.com.helpdev.lapscounter.wear.timer.WatchSessionState.PAUSED)
+        assertEquals(br.com.helpdev.lapscounter.wear.timer.WatchSessionState.PAUSED, activityIndicator.updates.last().state)
+
+        model.resume()
+        waitForState(br.com.helpdev.lapscounter.wear.timer.WatchSessionState.RUNNING)
+        model.stop()
+        waitForState(br.com.helpdev.lapscounter.wear.timer.WatchSessionState.STOPPED)
+        assertTrue("Ongoing activity is cancelled when the timer stops", activityIndicator.cancelCount > 0)
     }
 
     @Test fun stoppedMetricUsesActiveSportProfileAndDiscardLeavesNoHistory() {

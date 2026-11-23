@@ -5,8 +5,8 @@ kotlin = "2.3.20"
 compileSdk = "36"
 minSdk = "24"
 targetSdk = "36"
-appVersionCode = "13"
-appVersionName = "2.2.4"
+appVersionCode = "14"
+appVersionName = "2.2.5"
 appcompat = "1.7.1"
 constraintLayout = "2.2.1"
 coreKtx = "1.17.0"
@@ -29,6 +29,7 @@ wearCompose = "1.6.2"
 compose = "1.10.6"
 room = "2.8.5"
 wearable = "20.0.1"
+wearOngoing = "1.1.0"
 coroutines = "1.10.2"
 
 [libraries]
@@ -54,6 +55,8 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
 androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintLayout" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+androidx-core = { module = "androidx.core:core", version = "1.18.0" }
+androidx-wear-ongoing = { module = "androidx.wear:wear-ongoing", version.ref = "wearOngoing" }
 androidx-localbroadcastmanager = { module = "androidx.localbroadcastmanager:localbroadcastmanager", version = "1.1.0" }
 androidx-lifecycle-livedata-ktx = { module = "androidx.lifecycle:lifecycle-livedata-ktx", version.ref = "lifecycle" }
 androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycle" }

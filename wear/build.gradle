@@ -108,12 +108,14 @@ gradle.taskGraph.whenReady { graph ->
 dependencies {
     implementation project(':sportCore')
     implementation libs.androidx.activity.compose
+    implementation libs.androidx.core
     implementation libs.androidx.compose.ui
     implementation libs.androidx.compose.animation
     implementation libs.androidx.compose.foundation
     implementation libs.androidx.wear.compose.foundation
     implementation libs.androidx.wear.compose.material3
     implementation libs.androidx.wear.compose.navigation
+    implementation libs.androidx.wear.ongoing
     implementation libs.androidx.lifecycle.runtime.compose
     implementation libs.androidx.lifecycle.viewmodel.compose
     implementation libs.androidx.room.runtime
